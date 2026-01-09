@@ -13,15 +13,15 @@ function Show-Slides {
 
     .PARAMETER Background
         Override the background color from the Markdown frontmatter.
-        Accepts named colors or hex values (e.g., 'black', '#1a1a1a').
+        Accepts Spectre.Console.Color values (e.g., 'Black', 'DarkBlue', 'Grey15').
 
     .PARAMETER Foreground
         Override the foreground color from the Markdown frontmatter.
-        Accepts named colors or hex values (e.g., 'white', '#FFFFFF').
+        Accepts Spectre.Console.Color values (e.g., 'White', 'Cyan1', 'Yellow').
 
     .PARAMETER Border
         Override the border color from the Markdown frontmatter.
-        Accepts named colors or hex values (e.g., 'magenta', '#FF00FF').
+        Accepts Spectre.Console.Color values (e.g., 'Blue', 'Magenta1', 'Green').
 
     .EXAMPLE
         Show-Slides -Path ./presentation.md
@@ -29,7 +29,7 @@ function Show-Slides {
         Displays the presentation from the specified Markdown file.
 
     .EXAMPLE
-        Show-Slides -Path ./presentation.md -Foreground cyan -Background black
+        Show-Slides -Path ./presentation.md -Foreground Cyan1 -Background Black
 
         Displays the presentation with custom colors.
 
@@ -43,13 +43,13 @@ function Show-Slides {
         [string]$Path,
 
         [Parameter()]
-        [string]$Background,
+        [Spectre.Console.Color]$Background,
 
         [Parameter()]
-        [string]$Foreground,
+        [Spectre.Console.Color]$Foreground,
 
         [Parameter()]
-        [string]$Border
+        [Spectre.Console.Color]$Border
     )
 
     begin {
@@ -67,16 +67,16 @@ function Show-Slides {
 
             # Apply parameter overrides to settings
             if ($PSBoundParameters.ContainsKey('Background')) {
-                $presentation.Settings.background = $Background
+                $presentation.Settings.background = $Background.ToString()
             }
             if ($PSBoundParameters.ContainsKey('Foreground')) {
-                $presentation.Settings.foreground = $Foreground
+                $presentation.Settings.foreground = $Foreground.ToString()
             }
             if ($PSBoundParameters.ContainsKey('Border')) {
-                $presentation.Settings.border = $Border
+                $presentation.Settings.border = $Border.ToString()
             }
 
-            # Simple presentation loop - just show first slide for now (Phase 3)
+            # Simple presentation loop - just show first slide for now (Phase 3-4)
             $currentSlide = 0
 
             while ($true) {
@@ -84,14 +84,19 @@ function Show-Slides {
                 
                 # Detect slide type based on content
                 if ($slide.Content -match '^\s*#\s+.+$' -and $slide.Content -notmatch '\n[^#]') {
-                    # Title slide: Only has # heading
+                    # Title slide: Only has # heading, no other content
                     Write-Verbose "Rendering title slide #$($slide.Number)"
                     Show-TitleSlide -Slide $slide -Settings $presentation.Settings
                 }
+                elseif ($slide.Content -match '^\s*##\s+.+$' -and $slide.Content -notmatch '\n[^#]') {
+                    # Section slide: Only has ## heading, no other content
+                    Write-Verbose "Rendering section slide #$($slide.Number)"
+                    Show-SectionSlide -Slide $slide -Settings $presentation.Settings
+                }
                 else {
-                    # For now, just display raw content (will implement other types in later phases)
-                    Clear-Host
-                    Write-Host $slide.Content -ForegroundColor $presentation.Settings.foreground
+                    # Content slide: May have ### heading or just content
+                    Write-Verbose "Rendering content slide #$($slide.Number)"
+                    Show-ContentSlide -Slide $slide -Settings $presentation.Settings
                 }
 
                 # Basic navigation: Press any key to exit
