@@ -235,3 +235,58 @@ Slides/
 └── Examples/
     └── Example.md           # Example presentation
 ```
+
+## Implementation Phases
+
+### Phase 1: Foundation
+1. **Module structure** — Create basic manifest (Slides.psd1), module file (Slides.psm1), and folder structure (Public/, Private/, Fonts/, Examples/)
+2. **Dependency loader** — Implement PwshSpectreConsole loading with fallback to Install-PSResource (with sad face ASCII art on failure)
+3. **Test** — Verify module loads correctly and handles missing dependencies gracefully
+
+### Phase 2: Parsing
+4. **YAML frontmatter parser** — Extract settings from markdown frontmatter
+5. **Slide splitter** — Split markdown by horizontal rules (---, ***, ___) into individual slide chunks
+6. **Test** — Parse a simple markdown file and verify correct extraction of settings and slide content
+
+### Phase 3: First Slide Type
+7. **Title slide renderer** — Implement complete Title slide rendering (# heading with large figlet text)
+8. **Basic navigation** — Simple "press any key to exit" functionality
+9. **Test** — Display a simple title slide presentation end-to-end
+
+### Phase 4: Core Slide Types
+10. **Section slide renderer** — Implement Section slide (## heading with medium figlet text)
+11. **1-column slide renderer** — Implement basic content slide with header and content
+12. **Test** — Display presentation with Title, Section, and 1-column slides
+
+### Phase 5: Advanced Slide Types
+13. **2-column slide renderer** — Implement two-column layout
+14. **Left/Right slide renderers** — Implement image-based layouts
+15. **Test** — Display presentation with all slide types
+
+### Phase 6: Full Navigation
+16. **Complete navigation** — Implement all navigation keys (arrows, space, enter, n/p, page up/down)
+17. **Bullet reveal** — Implement progressive bullet point reveal for `*` items
+18. **Content scrolling** — Implement smart scrolling for overflow content
+19. **Test** — Verify all navigation patterns work correctly
+
+### Phase 7: Validation & Polish
+20. **Image validation** — Implement pre-load validation with -Strict mode
+21. **Empty slide handling** — Interactive prompt with markdown file modification
+22. **Markdown formatting** — Implement bold, italic, inline code, strikethrough conversion
+23. **Code blocks** — Implement syntax highlighting support
+24. **Test** — Verify all validation and formatting features
+
+### Phase 8: Watch Mode
+25. **File watcher** — Implement -Watch parameter with FileSystemWatcher
+26. **Auto-reload** — Reload and re-render on file changes with position preservation
+27. **Test** — Edit markdown file while watching and verify reload behavior
+
+### Phase 9: Export Functionality
+28. **Export-Slides cmdlet** — Implement standalone script generation
+29. **Embedded dependencies** — Ensure exported script is self-contained
+30. **Test** — Generate and run exported presentation script
+
+### Phase 10: Documentation & Examples
+31. **Comment-based help** — Complete help for both cmdlets
+32. **Example presentations** — Create sample markdown files demonstrating all features
+33. **README** — Write comprehensive project documentation
