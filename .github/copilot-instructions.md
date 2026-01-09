@@ -54,8 +54,9 @@ Auto-detect slide type based on content, with optional override via `<!-- type: 
 | `right` | Has image positioned on right |
 
 ### Content Rules
-- `#` — Main heading (Title slides use large figlet text)
-- `##` — Section heading (Section slides use medium figlet text)
+- `#` — Title slide heading (large figlet text, full screen)
+- `##` — Section slide heading (medium figlet text, full screen)
+- `###` — Regular slide header (smaller figlet text above content)
 - `*` item — Bullet points revealed one at a time
 - `-` item — Bullet points shown all at once
 - Regular text — Displayed as paragraphs

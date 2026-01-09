@@ -20,7 +20,7 @@ headerFont: default
 
 ---
 
-# Main Content
+### Main Content
 
 - First bullet point
 - Second bullet point

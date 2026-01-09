@@ -93,11 +93,61 @@ function ConvertFrom-SlideMarkdown {
                 Write-Verbose "No YAML frontmatter found, using defaults"
             }
             
+            # Split markdown into slides by horizontal rules (---, ***, ___)
+            Write-Verbose "Splitting markdown into slides"
+            $slidePattern = '(?m)^(?:---|___|\*\*\*)[ \t]*$'
+            $slideContents = $markdownContent -split $slidePattern
+            
+            # Filter out empty slides and trim whitespace
+            $slides = @()
+            $slideNumber = 1
+            
+            foreach ($slideContent in $slideContents) {
+                $trimmed = $slideContent.Trim()
+                
+                if ([string]::IsNullOrWhiteSpace($trimmed)) {
+                    Write-Verbose "  Skipping empty slide section"
+                    continue
+                }
+                
+                # Check for intentionally blank slides
+                if ($trimmed -match '<!--\s*intentionally\s+blank\s*-->') {
+                    Write-Verbose "  Slide $slideNumber : Intentionally blank"
+                    $slides += [PSCustomObject]@{
+                        Number          = $slideNumber
+                        Content         = $trimmed
+                        IsBlank         = $true
+                    }
+                    $slideNumber++
+                    continue
+                }
+                
+                Write-Verbose "  Slide $slideNumber : $(($trimmed -split '\r?\n')[0].Substring(0, [Math]::Min(50, ($trimmed -split '\r?\n')[0].Length)))..."
+                
+                $slides += [PSCustomObject]@{
+                    Number          = $slideNumber
+                    Content         = $trimmed
+                    IsBlank         = $false
+                }
+                $slideNumber++
+            }
+            
+            if ($slides.Count -eq 0) {
+                Write-Warning "No slide delimiters found. Treating entire content as single slide."
+                $slides = @([PSCustomObject]@{
+                    Number          = 1
+                    Content         = $markdownContent.Trim()
+                    IsBlank         = $false
+                })
+            }
+            
+            Write-Verbose "Found $($slides.Count) slides"
+            
             # Return parsed data
             [PSCustomObject]@{
-                Settings        = $settings
-                MarkdownContent = $markdownContent
-                SourcePath      = $Path
+                Settings   = $settings
+                Slides     = $slides
+                SourcePath = $Path
             }
         }
         catch {
