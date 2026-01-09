@@ -98,6 +98,12 @@ function ConvertFrom-SlideMarkdown {
             $slidePattern = '(?m)^(?:---|___|\*\*\*)[ \t]*$'
             $slideContents = $markdownContent -split $slidePattern
             
+            # Check if any delimiters were found
+            $noDelimiters = ($slideContents.Count -eq 1)
+            if ($noDelimiters) {
+                Write-Warning "No slide delimiters found. Treating entire content as single slide."
+            }
+            
             # Filter out empty slides and trim whitespace
             $slides = @()
             $slideNumber = 1
@@ -130,15 +136,6 @@ function ConvertFrom-SlideMarkdown {
                     IsBlank         = $false
                 }
                 $slideNumber++
-            }
-            
-            if ($slides.Count -eq 0) {
-                Write-Warning "No slide delimiters found. Treating entire content as single slide."
-                $slides = @([PSCustomObject]@{
-                    Number          = 1
-                    Content         = $markdownContent.Trim()
-                    IsBlank         = $false
-                })
             }
             
             Write-Verbose "Found $($slides.Count) slides"
