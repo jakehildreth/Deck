@@ -39,12 +39,12 @@ function Show-ContentSlide {
 
             # Get terminal dimensions
             $windowWidth = $Host.UI.RawUI.WindowSize.Width
-            $windowHeight = $Host.UI.RawUI.WindowSize.Height
+            $windowHeight = $Host.UI.RawUI.WindowSize.Height - 1
 
             # Determine if slide has a header and extract content
             $hasHeader = $false
             $headerText = $null
-            $content = $null
+            $bodyContent = $null
 
             if ($Slide.Content -match '^###\s+(.+?)(?:\r?\n|$)') {
                 $hasHeader = $true
@@ -52,43 +52,21 @@ function Show-ContentSlide {
                 Write-Verbose "  Header: $headerText"
                 
                 # Extract content after header
-                $content = $Slide.Content -replace '^###\s+.+?(\r?\n|$)', ''
-                $content = $content.Trim()
+                $bodyContent = $Slide.Content -replace '^###\s+.+?(\r?\n|$)', ''
+                $bodyContent = $bodyContent.Trim()
             }
             else {
                 # No header, use all content
-                $content = $Slide.Content.Trim()
+                $bodyContent = $Slide.Content.Trim()
             }
-
-            # Calculate total height of slide content
-            $headerHeight = 0
-            if ($hasHeader) {
-                # Mini font is approximately 5 lines tall
-                $headerHeight = 5
-            }
-            
-            $contentHeight = 0
-            if ($content) {
-                $lines = $content -split "`r?`n"
-                $contentHeight = $lines.Count
-            }
-            
-            # Add spacing between header and content (1 blank line)
-            $spacingHeight = if ($hasHeader -and $content) { 1 } else { 0 }
-            
-            # Calculate total content height and vertical padding
-            $totalContentHeight = $headerHeight + $spacingHeight + $contentHeight
-            $verticalPadding = [math]::Max(0, [math]::Floor(($windowHeight - $totalContentHeight) / 2))
-            
-            Write-Verbose "  Total content height: $totalContentHeight, padding: $verticalPadding"
             
             # Get border color and style
             $borderColor = $null
             if ($Settings.border) {
-                $colorName = (Get-Culture).TextInfo.ToTitleCase($Settings.border.ToLower())
-                Write-Verbose "  Border color: $colorName"
+                $borderColorName = (Get-Culture).TextInfo.ToTitleCase($Settings.border.ToLower())
+                Write-Verbose "  Border color: $borderColorName"
                 try {
-                    $borderColor = [Spectre.Console.Color]::$colorName
+                    $borderColor = [Spectre.Console.Color]::$borderColorName
                 }
                 catch {
                     Write-Warning "Invalid border color '$($Settings.border)', using default"
@@ -101,14 +79,10 @@ function Show-ContentSlide {
                 Write-Verbose "  Border style: $borderStyle"
             }
 
-            # Apply vertical padding
-            Write-Host ("`n" * $verticalPadding) -NoNewline
-
-            # Build content as string (for now, render without panel)
-            # TODO: Implement panel rendering for content slides
-            # For now, maintain original rendering
+            # Build the renderable content
+            $renderables = [System.Collections.Generic.List[object]]::new()
             
-            # Render header if present
+            # Add header figlet if present
             if ($hasHeader) {
                 # Convert color name to Spectre.Console.Color
                 $figletColor = $null
@@ -123,45 +97,75 @@ function Show-ContentSlide {
                     }
                 }
 
-                # Render the header using Spectre figlet with 'mini' font (smallest, centered)
-                $fontParams = @{
-                    Text = $headerText
-                    Alignment = 'Center'
-                }
-                if ($figletColor) {
-                    $fontParams['Color'] = $figletColor
-                }
-                
-                # Try to use mini font, fall back to default if not available
+                # Create figlet for header
                 $miniFontPath = Join-Path $PSScriptRoot '../Fonts/mini.flf'
                 if (Test-Path $miniFontPath) {
-                    $fontParams['FigletFontPath'] = $miniFontPath
+                    $font = [Spectre.Console.FigletFont]::Load($miniFontPath)
+                    $figlet = [Spectre.Console.FigletText]::new($font, $headerText)
                 }
-                
-                Write-SpectreFigletText @fontParams
+                else {
+                    $figlet = [Spectre.Console.FigletText]::new($headerText)
+                }
+                $figlet.Justification = [Spectre.Console.Justify]::Center
+                if ($figletColor) {
+                    $figlet.Color = $figletColor
+                }
+                $renderables.Add($figlet)
             }
 
-            # Render content if present (centered as a block)
-            if ($content) {
-                Write-Verbose "  Content length: $($content.Length) characters"
-                
-                # Add spacing between header and content
-                if ($hasHeader) {
-                    Write-Host ""
-                }
-                
-                # Find the widest line to center the entire block
-                $lines = $content -split "`r?`n"
+            # Add body content as text
+            if ($bodyContent) {
+                # Manually pad each line to center the block
+                $lines = $bodyContent -split "`r?`n"
                 $maxLineLength = ($lines | Measure-Object -Property Length -Maximum).Maximum
                 
-                # Calculate horizontal padding based on the widest line
-                $horizontalPadding = [math]::Max(0, [math]::Floor(($windowWidth - $maxLineLength) / 2))
+                # Calculate padding to center the block within the panel
+                $availableWidth = $windowWidth - 8  # Account for panel padding (4 left + 4 right)
+                $leftPadding = [math]::Max(0, [math]::Floor(($availableWidth - $maxLineLength) / 2))
                 
-                foreach ($line in $lines) {
-                    Write-Host (" " * $horizontalPadding) -NoNewline
-                    Write-Host $line
+                # Rebuild content with padding
+                $paddedLines = $lines | ForEach-Object {
+                    (" " * $leftPadding) + $_
                 }
+                $paddedContent = $paddedLines -join "`n"
+                
+                # Create text with left justification (padding is already in the string)
+                $text = [Spectre.Console.Text]::new($paddedContent)
+                $text.Justification = [Spectre.Console.Justify]::Left
+                $renderables.Add($text)
             }
+
+            # Combine renderables into a Rows layout
+            $rows = [Spectre.Console.Rows]::new([object[]]$renderables.ToArray())
+            
+            # Measure the actual height of the combined content
+            $contentSize = Get-SpectreRenderableSize -Renderable $rows -ContainerWidth $windowWidth
+            $actualContentHeight = $contentSize.Height
+            
+            # Calculate padding
+            $borderHeight = 2
+            $remainingSpace = $windowHeight - $actualContentHeight - $borderHeight
+            $verticalPadding = [math]::Max(0, [math]::Floor($remainingSpace / 2))
+            
+            Write-Verbose "  Content height: $actualContentHeight, padding: $verticalPadding"
+            
+            # Create panel with internal padding
+            $panel = [Spectre.Console.Panel]::new($rows)
+            $panel.Expand = $true
+            $panel.Padding = [Spectre.Console.Padding]::new(4, $verticalPadding, 4, $verticalPadding)
+            
+            # Add border style
+            if ($borderStyle) {
+                $panel.Border = [Spectre.Console.BoxBorder]::$borderStyle
+            }
+            
+            # Add border color
+            if ($borderColor) {
+                $panel.BorderStyle = [Spectre.Console.Style]::new($borderColor)
+            }
+            
+            # Render panel
+            Out-SpectreHost $panel
         }
         catch {
             $errorRecord = [System.Management.Automation.ErrorRecord]::new(
