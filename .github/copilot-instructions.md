@@ -255,9 +255,9 @@ Slides/
 - [x] **Test** — Display a simple title slide presentation end-to-end
 
 ### Phase 4: Core Slide Types
-- [ ] **Section slide renderer** — Implement Section slide (## heading with medium figlet text)
-- [ ] **1-column slide renderer** — Implement basic content slide with header and content
-- [ ] **Test** — Display presentation with Title, Section, and 1-column slides
+- [x] **Section slide renderer** — Implement Section slide (## heading with medium figlet text)
+- [x] **1-column slide renderer** — Implement basic content slide with header and content
+- [x] **Test** — Display presentation with Title, Section, and 1-column slides
 
 ### Phase 5: Advanced Slide Types
 - [ ] **2-column slide renderer** — Implement two-column layout
