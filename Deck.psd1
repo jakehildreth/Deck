@@ -5,8 +5,8 @@
     CompanyName='CompanyName'
     CompatiblePSEditions=@('Desktop',        'Core')
     Copyright='(c) 2011 - 2026 Author @ CompanyName. All rights reserved.'
-    Description='Simple project Slides'
-    FunctionsToExport='Show-Slides'
+    Description='Simple project Deck'
+    FunctionsToExport='Show-Deck'
     GUID='409fc543-77b9-48d6-87cc-8bee16c2a20d'
     ModuleVersion='1.0.0'
     PowerShellVersion='5.1'
@@ -16,5 +16,5 @@
             Tags=@('Windows',                'MacOS',                'Linux')
         }
     }
-    RootModule='Slides.psm1'
+    RootModule='Deck.psm1'
 }

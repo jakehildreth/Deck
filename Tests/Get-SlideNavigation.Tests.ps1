@@ -1,5 +1,5 @@
 BeforeAll {
-    Import-Module "$PSScriptRoot/../Slides.psd1" -Force
+    Import-Module "$PSScriptRoot/../Deck.psd1" -Force
     . "$PSScriptRoot/../Private/Get-SlideNavigation.ps1"
 }
 

@@ -33,7 +33,7 @@ function Show-SadFace {
         Write-Host ""
         Write-Host "  OH NO! Something went wrong!" -ForegroundColor Yellow
         Write-Host ""
-        Write-Host "  The Slides module requires PwshSpectreConsole to run." -ForegroundColor White
+        Write-Host "  The Deck module requires PwshSpectreConsole to run." -ForegroundColor White
         Write-Host "  Unfortunately, we couldn't install it automatically." -ForegroundColor White
         Write-Host ""
         Write-Host "  To fix this, please run:" -ForegroundColor Cyan
@@ -44,7 +44,7 @@ function Show-SadFace {
         Write-Host ""
         Write-Host "    Install-Module -Name PwshSpectreConsole -Repository PSGallery" -ForegroundColor Green
         Write-Host ""
-        Write-Host "  Then try running Slides again!" -ForegroundColor White
+        Write-Host "  Then try running Deck again!" -ForegroundColor White
         Write-Host ""
     }
 }

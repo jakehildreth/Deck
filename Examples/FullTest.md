@@ -4,7 +4,7 @@ foreground: Cyan1
 border: Blue
 ---
 
-# An Intro to Slides
+# An Intro to Deck
 
 ---
 
@@ -17,7 +17,7 @@ border: Blue
 Run the following command:
 
 ```powershell
-Install-Module Slides
+Install-Module Deck
 ```
 
 ---
@@ -27,5 +27,5 @@ Install-Module Slides
 Simply point to your markdown file:
 
 ```powershell
-Show-Slides -Path ./presentation.md
+Show-Deck -Path ./presentation.md
 ```

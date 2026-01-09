@@ -1,10 +1,10 @@
 BeforeAll {
     # Import the module
     $modulePath = Split-Path -Parent $PSScriptRoot
-    Import-Module (Join-Path $modulePath 'Slides.psd1') -Force
+    Import-Module (Join-Path $modulePath 'Deck.psd1') -Force
     
     # Create test markdown files
-    $script:testDir = Join-Path $TestDrive 'show-slides-tests'
+    $script:testDir = Join-Path $TestDrive 'show-deck-tests'
     New-Item -ItemType Directory -Path $script:testDir -Force | Out-Null
     
     # Single slide test
@@ -44,25 +44,25 @@ Content here
     Set-Content -Path $script:multiSlideFile -Value $multiContent
 }
 
-Describe 'Show-Slides' {
+Describe 'Show-Deck' {
     Context 'Parameter Types' {
         It 'Should accept string for Background parameter' {
-            $paramInfo = (Get-Command Show-Slides).Parameters['Background']
+            $paramInfo = (Get-Command Show-Deck).Parameters['Background']
             $paramInfo.ParameterType.FullName | Should -Be 'System.String'
         }
 
         It 'Should accept string for Foreground parameter' {
-            $paramInfo = (Get-Command Show-Slides).Parameters['Foreground']
+            $paramInfo = (Get-Command Show-Deck).Parameters['Foreground']
             $paramInfo.ParameterType.FullName | Should -Be 'System.String'
         }
 
         It 'Should accept string for Border parameter' {
-            $paramInfo = (Get-Command Show-Slides).Parameters['Border']
+            $paramInfo = (Get-Command Show-Deck).Parameters['Border']
             $paramInfo.ParameterType.FullName | Should -Be 'System.String'
         }
         
         It 'Should have optional color parameters (not mandatory)' {
-            $params = (Get-Command Show-Slides).Parameters
+            $params = (Get-Command Show-Deck).Parameters
             $params['Background'].Attributes.Mandatory | Should -Contain $false
             $params['Foreground'].Attributes.Mandatory | Should -Contain $false
             $params['Border'].Attributes.Mandatory | Should -Contain $false
@@ -71,12 +71,12 @@ Describe 'Show-Slides' {
     
     Context 'File Validation' {
         It 'Should require Path parameter' {
-            $paramInfo = (Get-Command Show-Slides).Parameters['Path']
+            $paramInfo = (Get-Command Show-Deck).Parameters['Path']
             $paramInfo.Attributes.Mandatory | Should -Contain $true
         }
         
         It 'Should validate file exists' {
-            $paramInfo = (Get-Command Show-Slides).Parameters['Path']
+            $paramInfo = (Get-Command Show-Deck).Parameters['Path']
             $validateScript = $paramInfo.Attributes | Where-Object { $_ -is [System.Management.Automation.ValidateScriptAttribute] }
             $validateScript | Should -Not -BeNullOrEmpty
         }

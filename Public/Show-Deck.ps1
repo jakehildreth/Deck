@@ -1,4 +1,4 @@
-function Show-Slides {
+function Show-Deck {
     <#
     .SYNOPSIS
         Displays a Markdown file as an interactive terminal presentation.
@@ -24,12 +24,12 @@ function Show-Slides {
         Accepts Spectre.Console.Color values (e.g., 'Blue', 'Magenta1', 'Green').
 
     .EXAMPLE
-        Show-Slides -Path ./presentation.md
+        Show-Deck -Path ./presentation.md
 
         Displays the presentation from the specified Markdown file.
 
     .EXAMPLE
-        Show-Slides -Path ./presentation.md -Foreground Cyan1 -Background Black
+        Show-Deck -Path ./presentation.md -Foreground Cyan1 -Background Black
 
         Displays the presentation with custom colors.
 
@@ -226,6 +226,6 @@ function Show-Slides {
     }
 
     end {
-        Write-Verbose "Show-Slides complete"
+        Write-Verbose "Show-Deck complete"
     }
 }
