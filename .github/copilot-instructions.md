@@ -250,9 +250,9 @@ Slides/
 - [x] **Test** — Parse a simple markdown file and verify correct extraction of settings and slide content
 
 ### Phase 3: First Slide Type
-- [ ] **Title slide renderer** — Implement complete Title slide rendering (# heading with large figlet text)
-- [ ] **Basic navigation** — Simple "press any key to exit" functionality
-- [ ] **Test** — Display a simple title slide presentation end-to-end
+- [x] **Title slide renderer** — Implement complete Title slide rendering (# heading with large figlet text)
+- [x] **Basic navigation** — Simple "press any key to exit" functionality
+- [x] **Test** — Display a simple title slide presentation end-to-end
 
 ### Phase 4: Core Slide Types
 - [ ] **Section slide renderer** — Implement Section slide (## heading with medium figlet text)
