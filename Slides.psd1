@@ -6,7 +6,7 @@
     CompatiblePSEditions = @('Desktop', 'Core')
     Copyright            = '(c) 2011 - 2023 Author @ CompanyName. All rights reserved.'
     Description          = 'Simple project Slides'
-    FunctionsToExport    = @()
+    FunctionsToExport    = @('Show-Slides')
     GUID                 = '409fc543-77b9-48d6-87cc-8bee16c2a20d'
     ModuleVersion        = '1.0.0'
     PowerShellVersion    = '5.1'
