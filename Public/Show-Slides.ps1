@@ -76,15 +76,8 @@ function Show-Slides {
                 $presentation.Settings.border = $Border
             }
 
-            # Hide cursor during presentation (if supported)
-            $originalCursorSize = $null
-            try {
-                $originalCursorSize = $Host.UI.RawUI.CursorSize
-                $Host.UI.RawUI.CursorSize = 0
-            }
-            catch {
-                Write-Verbose "Cursor hiding not supported on this platform"
-            }
+            # Hide cursor during presentation using ANSI escape codes
+            Write-Host "`e[?25l" -NoNewline  # Hide cursor
 
             try {
                 # Full navigation loop (Phase 6)
@@ -102,7 +95,7 @@ function Show-Slides {
                 if ($slide.Content -match '^\s*#\s+.+$' -and $slide.Content -notmatch '\n[^#]') {
                     # Title slide: Only has # heading, no other content
                     Write-Verbose "Rendering title slide $($currentSlide + 1)/$totalSlides"
-                    Show-TitleSlide -Slide $slide -Settings $presentation.Settings
+                    Show-TitleSlide -Slide $slide -Settings $presentation.Settings -IsFirstSlide:($currentSlide -eq 0)
                 }
                 elseif ($slide.Content -match '^\s*##\s+.+$' -and $slide.Content -notmatch '\n[^#]') {
                     # Section slide: Only has ## heading, no other content
@@ -113,18 +106,6 @@ function Show-Slides {
                     # Content slide: May have ### heading or just content
                     Write-Verbose "Rendering content slide $($currentSlide + 1)/$totalSlides"
                     Show-ContentSlide -Slide $slide -Settings $presentation.Settings
-                }
-
-                # Show help hint on first slide only, positioned bottom-right
-                if ($currentSlide -eq 0) {
-                    $helpText = "press ? for help"
-                    $windowWidth = $Host.UI.RawUI.WindowSize.Width
-                    $windowHeight = $Host.UI.RawUI.WindowSize.Height
-                    $cursorPos = $Host.UI.RawUI.CursorPosition
-                    $cursorPos.X = $windowWidth - $helpText.Length - 1
-                    $cursorPos.Y = $windowHeight - 1
-                    $Host.UI.RawUI.CursorPosition = $cursorPos
-                    Write-SpectreHost "[grey39]$helpText[/]"
                 }
 
                 # Get user input
@@ -229,15 +210,8 @@ function Show-Slides {
             Write-Verbose "Presentation ended"
             }
             finally {
-                # Restore cursor visibility (if it was hidden)
-                if ($null -ne $originalCursorSize) {
-                    try {
-                        $Host.UI.RawUI.CursorSize = $originalCursorSize
-                    }
-                    catch {
-                        Write-Verbose "Could not restore cursor size"
-                    }
-                }
+                # Show cursor again
+                Write-Host "`e[?25h" -NoNewline  # Show cursor
             }
         }
         catch {

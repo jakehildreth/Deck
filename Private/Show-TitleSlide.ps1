@@ -25,7 +25,10 @@ function Show-TitleSlide {
         [PSCustomObject]$Slide,
 
         [Parameter(Mandatory = $true)]
-        [hashtable]$Settings
+        [hashtable]$Settings,
+
+        [Parameter()]
+        [switch]$IsFirstSlide
     )
 
     begin {
@@ -85,31 +88,39 @@ function Show-TitleSlide {
                 $figlet.Color = $figletColor
             }
 
-            # Create panel with border
+            # Create panel with internal padding calculated to fill terminal height
+            $windowHeight = $Host.UI.RawUI.WindowSize.Height - 1
+            $windowWidth = $Host.UI.RawUI.WindowSize.Width
+            
+            # Measure actual figlet height
+            $figletSize = Get-SpectreRenderableSize -Renderable $figlet -ContainerWidth $windowWidth
+            $actualFigletHeight = $figletSize.Height
+            
+            $borderHeight = 2
+            $remainingSpace = $windowHeight - $actualFigletHeight - $borderHeight
+            $verticalPadding = [math]::Max(0, [math]::Floor($remainingSpace / 2))
+            
             $panel = [Spectre.Console.Panel]::new($figlet)
             $panel.Expand = $true
+            $panel.Padding = [Spectre.Console.Padding]::new(4, $verticalPadding, 4, $verticalPadding)
             
-            # Set border style
-            try {
+            # Add border style
+            if ($borderStyle) {
                 $panel.Border = [Spectre.Console.BoxBorder]::$borderStyle
             }
-            catch {
-                Write-Warning "Invalid border style '$borderStyle', using Rounded"
-                $panel.Border = [Spectre.Console.BoxBorder]::Rounded
-            }
             
-            # Set border color
+            # Add border color
             if ($borderColor) {
                 $panel.BorderStyle = [Spectre.Console.Style]::new($borderColor)
             }
-
-            # Center vertically - add padding to push content toward middle
-            $windowHeight = $Host.UI.RawUI.WindowSize.Height
-            $verticalPadding = [math]::Max(0, [math]::Floor($windowHeight / 3))
-            Write-Host ("`n" * $verticalPadding) -NoNewline
-
-            # Render the panel
-            [Spectre.Console.AnsiConsole]::Write($panel)
+            
+            # Add help text title for first slide
+            if ($IsFirstSlide) {
+                $panel.Header = [Spectre.Console.PanelHeader]::new("[grey39]press ? for help[/]")
+            }
+            
+            # Render panel
+            Out-SpectreHost $panel
         }
         catch {
             $errorRecord = [System.Management.Automation.ErrorRecord]::new(
