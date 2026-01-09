@@ -82,9 +82,32 @@ function Show-ContentSlide {
             
             Write-Verbose "  Total content height: $totalContentHeight, padding: $verticalPadding"
             
+            # Get border color and style
+            $borderColor = $null
+            if ($Settings.border) {
+                $colorName = (Get-Culture).TextInfo.ToTitleCase($Settings.border.ToLower())
+                Write-Verbose "  Border color: $colorName"
+                try {
+                    $borderColor = [Spectre.Console.Color]::$colorName
+                }
+                catch {
+                    Write-Warning "Invalid border color '$($Settings.border)', using default"
+                }
+            }
+            
+            $borderStyle = 'Rounded'
+            if ($Settings.borderStyle) {
+                $borderStyle = (Get-Culture).TextInfo.ToTitleCase($Settings.borderStyle.ToLower())
+                Write-Verbose "  Border style: $borderStyle"
+            }
+
             # Apply vertical padding
             Write-Host ("`n" * $verticalPadding) -NoNewline
 
+            # Build content as string (for now, render without panel)
+            # TODO: Implement panel rendering for content slides
+            # For now, maintain original rendering
+            
             # Render header if present
             if ($hasHeader) {
                 # Convert color name to Spectre.Console.Color

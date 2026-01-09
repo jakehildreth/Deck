@@ -46,7 +46,7 @@ function Show-TitleSlide {
             # Clear the screen
             Clear-Host
 
-            # Convert color name to Spectre.Console.Color
+            # Convert colors to Spectre.Console.Color
             $figletColor = $null
             if ($Settings.foreground) {
                 $colorName = (Get-Culture).TextInfo.ToTitleCase($Settings.foreground.ToLower())
@@ -59,18 +59,57 @@ function Show-TitleSlide {
                 }
             }
 
+            $borderColor = $null
+            if ($Settings.border) {
+                $borderColorName = (Get-Culture).TextInfo.ToTitleCase($Settings.border.ToLower())
+                Write-Verbose "  Border color: $borderColorName"
+                try {
+                    $borderColor = [Spectre.Console.Color]::$borderColorName
+                }
+                catch {
+                    Write-Warning "Invalid border color '$($Settings.border)', using default"
+                }
+            }
+
+            # Determine border style
+            $borderStyle = 'Rounded'
+            if ($Settings.borderStyle) {
+                $borderStyle = (Get-Culture).TextInfo.ToTitleCase($Settings.borderStyle.ToLower())
+                Write-Verbose "  Border style: $borderStyle"
+            }
+
+            # Create figlet text object
+            $figlet = [Spectre.Console.FigletText]::new($titleText)
+            $figlet.Justification = [Spectre.Console.Justify]::Center
+            if ($figletColor) {
+                $figlet.Color = $figletColor
+            }
+
+            # Create panel with border
+            $panel = [Spectre.Console.Panel]::new($figlet)
+            $panel.Expand = $true
+            
+            # Set border style
+            try {
+                $panel.Border = [Spectre.Console.BoxBorder]::$borderStyle
+            }
+            catch {
+                Write-Warning "Invalid border style '$borderStyle', using Rounded"
+                $panel.Border = [Spectre.Console.BoxBorder]::Rounded
+            }
+            
+            # Set border color
+            if ($borderColor) {
+                $panel.BorderStyle = [Spectre.Console.Style]::new($borderColor)
+            }
+
             # Center vertically - add padding to push content toward middle
             $windowHeight = $Host.UI.RawUI.WindowSize.Height
             $verticalPadding = [math]::Max(0, [math]::Floor($windowHeight / 3))
             Write-Host ("`n" * $verticalPadding) -NoNewline
 
-            # Render the title using Spectre figlet (centered)
-            if ($figletColor) {
-                Write-SpectreFigletText -Text $titleText -Color $figletColor -Alignment Center
-            }
-            else {
-                Write-SpectreFigletText -Text $titleText -Alignment Center
-            }
+            # Render the panel
+            [Spectre.Console.AnsiConsole]::Write($panel)
         }
         catch {
             $errorRecord = [System.Management.Automation.ErrorRecord]::new(
