@@ -265,10 +265,10 @@ Slides/
 - [ ] **Test** — Display presentation with all slide types
 
 ### Phase 6: Full Navigation
-- [ ] **Complete navigation** — Implement all navigation keys (arrows, space, enter, n/p, page up/down)
+- [x] **Complete navigation** — Implement all navigation keys (arrows, space, enter, n/p, page up/down)
 - [ ] **Bullet reveal** — Implement progressive bullet point reveal for `*` items
 - [ ] **Content scrolling** — Implement smart scrolling for overflow content
-- [ ] **Test** — Verify all navigation patterns work correctly
+- [x] **Test** — Verify navigation key handlers (15 tests passing)
 
 ### Phase 7: Validation & Polish
 - [ ] **Image validation** — Implement pre-load validation with -Strict mode

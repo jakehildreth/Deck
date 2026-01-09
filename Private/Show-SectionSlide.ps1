@@ -59,14 +59,27 @@ function Show-SectionSlide {
                 }
             }
 
-            # Render the section using Spectre figlet
-            # Note: PwshSpectreConsole's Write-SpectreFigletText handles centering automatically
+            # Center vertically - add padding to push content toward middle
+            $windowHeight = $Host.UI.RawUI.WindowSize.Height
+            $verticalPadding = [math]::Max(0, [math]::Floor($windowHeight / 3))
+            Write-Host ("`n" * $verticalPadding) -NoNewline
+
+            # Render the section using Spectre figlet with 'small' font (medium size, centered)
+            $fontParams = @{
+                Text = $sectionText
+                Alignment = 'Center'
+            }
             if ($figletColor) {
-                Write-SpectreFigletText -Text $sectionText -Color $figletColor
+                $fontParams['Color'] = $figletColor
             }
-            else {
-                Write-SpectreFigletText -Text $sectionText
+            
+            # Try to use small font, fall back to default if not available
+            $smallFontPath = Join-Path $PSScriptRoot '../Fonts/small.flf'
+            if (Test-Path $smallFontPath) {
+                $fontParams['FigletFontPath'] = $smallFontPath
             }
+            
+            Write-SpectreFigletText @fontParams
         }
         catch {
             $errorRecord = [System.Management.Automation.ErrorRecord]::new(

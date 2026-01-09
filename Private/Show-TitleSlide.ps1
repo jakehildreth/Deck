@@ -59,13 +59,17 @@ function Show-TitleSlide {
                 }
             }
 
-            # Render the title using Spectre figlet
-            # Note: PwshSpectreConsole's Write-SpectreFigletText handles centering automatically
+            # Center vertically - add padding to push content toward middle
+            $windowHeight = $Host.UI.RawUI.WindowSize.Height
+            $verticalPadding = [math]::Max(0, [math]::Floor($windowHeight / 3))
+            Write-Host ("`n" * $verticalPadding) -NoNewline
+
+            # Render the title using Spectre figlet (centered)
             if ($figletColor) {
-                Write-SpectreFigletText -Text $titleText -Color $figletColor
+                Write-SpectreFigletText -Text $titleText -Color $figletColor -Alignment Center
             }
             else {
-                Write-SpectreFigletText -Text $titleText
+                Write-SpectreFigletText -Text $titleText -Alignment Center
             }
         }
         catch {

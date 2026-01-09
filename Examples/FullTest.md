@@ -4,7 +4,7 @@ foreground: Cyan1
 border: Blue
 ---
 
-# PowerShell Slides
+# An Intro to Slides
 
 ---
 

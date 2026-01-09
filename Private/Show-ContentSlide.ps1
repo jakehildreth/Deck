@@ -37,11 +37,56 @@ function Show-ContentSlide {
             # Clear the screen
             Clear-Host
 
-            # Check if slide has a ### header
+            # Get terminal dimensions
+            $windowWidth = $Host.UI.RawUI.WindowSize.Width
+            $windowHeight = $Host.UI.RawUI.WindowSize.Height
+
+            # Determine if slide has a header and extract content
+            $hasHeader = $false
+            $headerText = $null
+            $content = $null
+
             if ($Slide.Content -match '^###\s+(.+?)(?:\r?\n|$)') {
+                $hasHeader = $true
                 $headerText = $Matches[1].Trim()
                 Write-Verbose "  Header: $headerText"
+                
+                # Extract content after header
+                $content = $Slide.Content -replace '^###\s+.+?(\r?\n|$)', ''
+                $content = $content.Trim()
+            }
+            else {
+                # No header, use all content
+                $content = $Slide.Content.Trim()
+            }
 
+            # Calculate total height of slide content
+            $headerHeight = 0
+            if ($hasHeader) {
+                # Mini font is approximately 5 lines tall
+                $headerHeight = 5
+            }
+            
+            $contentHeight = 0
+            if ($content) {
+                $lines = $content -split "`r?`n"
+                $contentHeight = $lines.Count
+            }
+            
+            # Add spacing between header and content (1 blank line)
+            $spacingHeight = if ($hasHeader -and $content) { 1 } else { 0 }
+            
+            # Calculate total content height and vertical padding
+            $totalContentHeight = $headerHeight + $spacingHeight + $contentHeight
+            $verticalPadding = [math]::Max(0, [math]::Floor(($windowHeight - $totalContentHeight) / 2))
+            
+            Write-Verbose "  Total content height: $totalContentHeight, padding: $verticalPadding"
+            
+            # Apply vertical padding
+            Write-Host ("`n" * $verticalPadding) -NoNewline
+
+            # Render header if present
+            if ($hasHeader) {
                 # Convert color name to Spectre.Console.Color
                 $figletColor = $null
                 if ($Settings.foreground) {
@@ -55,27 +100,44 @@ function Show-ContentSlide {
                     }
                 }
 
-                # Render the header using Spectre figlet
+                # Render the header using Spectre figlet with 'mini' font (smallest, centered)
+                $fontParams = @{
+                    Text = $headerText
+                    Alignment = 'Center'
+                }
                 if ($figletColor) {
-                    Write-SpectreFigletText -Text $headerText -Color $figletColor
+                    $fontParams['Color'] = $figletColor
                 }
-                else {
-                    Write-SpectreFigletText -Text $headerText
+                
+                # Try to use mini font, fall back to default if not available
+                $miniFontPath = Join-Path $PSScriptRoot '../Fonts/mini.flf'
+                if (Test-Path $miniFontPath) {
+                    $fontParams['FigletFontPath'] = $miniFontPath
                 }
-
-                # Extract content after header (everything after the ### line)
-                $content = $Slide.Content -replace '^###\s+.+?(\r?\n|$)', ''
-                $content = $content.Trim()
-            }
-            else {
-                # No header, use all content
-                $content = $Slide.Content.Trim()
+                
+                Write-SpectreFigletText @fontParams
             }
 
-            # Render content if present
+            # Render content if present (centered as a block)
             if ($content) {
                 Write-Verbose "  Content length: $($content.Length) characters"
-                Write-Host "`n$content" -ForegroundColor $Settings.foreground
+                
+                # Add spacing between header and content
+                if ($hasHeader) {
+                    Write-Host ""
+                }
+                
+                # Find the widest line to center the entire block
+                $lines = $content -split "`r?`n"
+                $maxLineLength = ($lines | Measure-Object -Property Length -Maximum).Maximum
+                
+                # Calculate horizontal padding based on the widest line
+                $horizontalPadding = [math]::Max(0, [math]::Floor(($windowWidth - $maxLineLength) / 2))
+                
+                foreach ($line in $lines) {
+                    Write-Host (" " * $horizontalPadding) -NoNewline
+                    Write-Host $line
+                }
             }
         }
         catch {
