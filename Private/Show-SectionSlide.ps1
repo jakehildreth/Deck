@@ -92,7 +92,8 @@ function Show-SectionSlide {
             }
 
             # Create panel with internal padding calculated to fill terminal height
-            $windowHeight = $Host.UI.RawUI.WindowSize.Height - 1
+            # Account for Out-SpectreHost adding a trailing newline
+            $windowHeight = $Host.UI.RawUI.WindowSize.Height - 2
             $windowWidth = $Host.UI.RawUI.WindowSize.Width
             
             # Measure actual figlet height
@@ -101,11 +102,12 @@ function Show-SectionSlide {
             
             $borderHeight = 2
             $remainingSpace = $windowHeight - $actualFigletHeight - $borderHeight
-            $verticalPadding = [math]::Max(0, [math]::Floor($remainingSpace / 2))
+            $topPadding = [math]::Max(0, [math]::Floor($remainingSpace / 2))
+            $bottomPadding = [math]::Max(0, $remainingSpace - $topPadding)
             
             $panel = [Spectre.Console.Panel]::new($figlet)
             $panel.Expand = $true
-            $panel.Padding = [Spectre.Console.Padding]::new(4, $verticalPadding, 4, $verticalPadding)
+            $panel.Padding = [Spectre.Console.Padding]::new(4, $topPadding, 4, $bottomPadding)
             
             # Add border style
             if ($borderStyle) {

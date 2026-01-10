@@ -47,8 +47,9 @@ function Show-ContentSlide {
             Clear-Host
 
             # Get terminal dimensions
+            # Account for Out-SpectreHost adding a trailing newline
             $windowWidth = $Host.UI.RawUI.WindowSize.Width
-            $windowHeight = $Host.UI.RawUI.WindowSize.Height - 1
+            $windowHeight = $Host.UI.RawUI.WindowSize.Height - 2
 
             # Determine if slide has a header and extract content
             $hasHeader = $false
@@ -211,14 +212,15 @@ function Show-ContentSlide {
             # Calculate padding
             $borderHeight = 2
             $remainingSpace = $windowHeight - $actualContentHeight - $borderHeight
-            $verticalPadding = [math]::Max(0, [math]::Floor($remainingSpace / 2))
+            $topPadding = [math]::Max(0, [math]::Floor($remainingSpace / 2))
+            $bottomPadding = [math]::Max(0, $remainingSpace - $topPadding)
             
-            Write-Verbose "  Content height: $actualContentHeight, padding: $verticalPadding"
+            Write-Verbose "  Content height: $actualContentHeight, top padding: $topPadding, bottom padding: $bottomPadding"
             
             # Create panel with internal padding
             $panel = [Spectre.Console.Panel]::new($rows)
             $panel.Expand = $true
-            $panel.Padding = [Spectre.Console.Padding]::new(4, $verticalPadding, 4, $verticalPadding)
+            $panel.Padding = [Spectre.Console.Padding]::new(4, $topPadding, 4, $bottomPadding)
             
             # Add border style
             if ($borderStyle) {

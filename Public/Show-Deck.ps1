@@ -89,8 +89,8 @@ function Show-Deck {
                 $visibleBullets = @{}
 
                 while ($true) {
-                    # Clear screen for new slide
-                Clear-Host
+                    # Move cursor to top-left and redraw (no clear to reduce flicker)
+                    Write-Host "`e[H" -NoNewline
 
                 $slide = $presentation.Slides[$currentSlide]
                 
@@ -122,7 +122,17 @@ function Show-Deck {
 
                 # Handle help key
                 if ($key.Character -eq '?') {
-                    Clear-Host
+                    Write-Host "`e[H" -NoNewline
+                    
+                    # Fill screen with blank lines to clear previous content
+                    $windowHeight = $Host.UI.RawUI.WindowSize.Height
+                    $windowWidth = $Host.UI.RawUI.WindowSize.Width
+                    for ($i = 0; $i -lt $windowHeight; $i++) {
+                        Write-Host (" " * $windowWidth)
+                    }
+                    
+                    # Move cursor back to top and render help text
+                    Write-Host "`e[H" -NoNewline
                     Write-Host "`n  Navigation Controls`n" -ForegroundColor Cyan
                     Write-Host "  Forward:  " -ForegroundColor Gray -NoNewline
                     Write-Host "Right, Down, Space, Enter, n, Page Down" -ForegroundColor White
@@ -153,17 +163,25 @@ function Show-Deck {
                         }
                         else {
                             # On last slide, trying to go forward shows end screen
-                            Clear-Host
+                            Write-Host "`e[H" -NoNewline
                             
                             # Center text vertically and horizontally
                             $windowHeight = $Host.UI.RawUI.WindowSize.Height
                             $windowWidth = $Host.UI.RawUI.WindowSize.Width
                             
-                            $line1 = "End of Slides"
+                            $line1 = "End of Deck"
                             $line2 = "Press ESC to Exit"
                             
                             # Calculate vertical position (center)
                             $verticalPadding = [math]::Floor($windowHeight / 2) - 1
+                            
+                            # Fill screen with blank lines to clear previous content
+                            for ($i = 0; $i -lt $windowHeight; $i++) {
+                                Write-Host (" " * $windowWidth)
+                            }
+                            
+                            # Move cursor back to top and render centered text
+                            Write-Host "`e[H" -NoNewline
                             
                             # Print vertical padding
                             Write-Host ("`n" * $verticalPadding) -NoNewline
