@@ -13,8 +13,14 @@ function Show-ContentSlide {
     .PARAMETER Settings
         The presentation settings hashtable containing colors, fonts, and styling options.
 
+    .PARAMETER VisibleBullets
+        The number of progressive bullets (*) to show. If not specified, all bullets are shown.
+
     .EXAMPLE
         Show-ContentSlide -Slide $slideObject -Settings $settings
+
+    .EXAMPLE
+        Show-ContentSlide -Slide $slideObject -Settings $settings -VisibleBullets 2
 
     .NOTES
         Content slides are the most common slide type for displaying information.
@@ -25,7 +31,10 @@ function Show-ContentSlide {
         [PSCustomObject]$Slide,
 
         [Parameter(Mandatory = $true)]
-        [hashtable]$Settings
+        [hashtable]$Settings,
+
+        [Parameter(Mandatory = $false)]
+        [int]$VisibleBullets = [int]::MaxValue
     )
 
     begin {
@@ -58,6 +67,55 @@ function Show-ContentSlide {
             else {
                 # No header, use all content
                 $bodyContent = $Slide.Content.Trim()
+            }
+
+            # Parse and filter bullets based on visibility
+            if ($bodyContent) {
+                $lines = $bodyContent -split "`r?`n"
+                $filteredLines = [System.Collections.Generic.List[string]]::new()
+                $progressiveBulletCount = 0
+                $visibleProgressiveBullets = 0
+                
+                foreach ($line in $lines) {
+                    # Check if line is a progressive bullet (*)
+                    if ($line -match '^\s*\*\s+') {
+                        $progressiveBulletCount++
+                        if ($visibleProgressiveBullets -lt $VisibleBullets) {
+                            $filteredLines.Add($line)
+                            $visibleProgressiveBullets++
+                        }
+                        else {
+                            # Add blank line placeholder for hidden progressive bullets
+                            $filteredLines.Add("")
+                        }
+                    }
+                    # All other lines (including - bullets) are always shown
+                    else {
+                        $filteredLines.Add($line)
+                    }
+                }
+                
+                # Store total progressive bullet count on the slide object for navigation
+                if (-not $Slide.PSObject.Properties['TotalProgressiveBullets']) {
+                    Add-Member -InputObject $Slide -NotePropertyName 'TotalProgressiveBullets' -NotePropertyValue $progressiveBulletCount -Force
+                }
+                
+                # Store the full content height for consistent vertical alignment
+                # This ensures content doesn't jump as bullets are revealed
+                if (-not $Slide.PSObject.Properties['FullContentHeight']) {
+                    $fullContentText = $lines -join "`n"
+                    $fullText = [Spectre.Console.Text]::new($fullContentText)
+                    $fullSize = Get-SpectreRenderableSize -Renderable $fullText -ContainerWidth $windowWidth
+                    Add-Member -InputObject $Slide -NotePropertyName 'FullContentHeight' -NotePropertyValue $fullSize.Height -Force
+                }
+                
+                # Store the max line length of all content (including hidden bullets) for consistent horizontal alignment
+                if (-not $Slide.PSObject.Properties['MaxLineLength']) {
+                    $maxLength = ($lines | Measure-Object -Property Length -Maximum).Maximum
+                    Add-Member -InputObject $Slide -NotePropertyName 'MaxLineLength' -NotePropertyValue $maxLength -Force
+                }
+                
+                $bodyContent = $filteredLines -join "`n"
             }
             
             # Get border color and style
@@ -117,7 +175,14 @@ function Show-ContentSlide {
             if ($bodyContent) {
                 # Manually pad each line to center the block
                 $lines = $bodyContent -split "`r?`n"
-                $maxLineLength = ($lines | Measure-Object -Property Length -Maximum).Maximum
+                
+                # Use stored max line length for consistent alignment during bullet reveal
+                if ($Slide.PSObject.Properties['MaxLineLength']) {
+                    $maxLineLength = $Slide.MaxLineLength
+                }
+                else {
+                    $maxLineLength = ($lines | Measure-Object -Property Length -Maximum).Maximum
+                }
                 
                 # Calculate padding to center the block within the panel
                 $availableWidth = $windowWidth - 8  # Account for panel padding (4 left + 4 right)
@@ -138,7 +203,8 @@ function Show-ContentSlide {
             # Combine renderables into a Rows layout
             $rows = [Spectre.Console.Rows]::new([object[]]$renderables.ToArray())
             
-            # Measure the actual height of the combined content
+            # Measure the actual height of the rendered content
+            # (blank placeholder lines maintain consistent height for progressive bullets)
             $contentSize = Get-SpectreRenderableSize -Renderable $rows -ContainerWidth $windowWidth
             $actualContentHeight = $contentSize.Height
             

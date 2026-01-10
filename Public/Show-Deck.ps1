@@ -84,12 +84,20 @@ function Show-Deck {
                 $currentSlide = 0
                 $totalSlides = $presentation.Slides.Count
                 $shouldExit = $false
+                
+                # Track visible bullets per slide
+                $visibleBullets = @{}
 
                 while ($true) {
                     # Clear screen for new slide
                 Clear-Host
 
                 $slide = $presentation.Slides[$currentSlide]
+                
+                # Initialize visible bullets for this slide if not set
+                if (-not $visibleBullets.ContainsKey($currentSlide)) {
+                    $visibleBullets[$currentSlide] = 0
+                }
                 
                 # Detect slide type based on content
                 if ($slide.Content -match '^\s*#\s+.+$' -and $slide.Content -notmatch '\n[^#]') {
@@ -104,8 +112,8 @@ function Show-Deck {
                 }
                 else {
                     # Content slide: May have ### heading or just content
-                    Write-Verbose "Rendering content slide $($currentSlide + 1)/$totalSlides"
-                    Show-ContentSlide -Slide $slide -Settings $presentation.Settings
+                    Write-Verbose "Rendering content slide $($currentSlide + 1)/$totalSlides with $($visibleBullets[$currentSlide]) bullets"
+                    Show-ContentSlide -Slide $slide -Settings $presentation.Settings -VisibleBullets $visibleBullets[$currentSlide]
                 }
 
                 # Get user input
@@ -130,8 +138,17 @@ function Show-Deck {
                 # Handle navigation
                 switch ($action) {
                     'Next' {
-                        if ($currentSlide -lt $totalSlides - 1) {
+                        # Check if current slide has hidden bullets
+                        if ($slide.PSObject.Properties['TotalProgressiveBullets'] -and 
+                            $visibleBullets[$currentSlide] -lt $slide.TotalProgressiveBullets) {
+                            # Reveal next bullet
+                            $visibleBullets[$currentSlide]++
+                            Write-Verbose "Revealed bullet $($visibleBullets[$currentSlide])/$($slide.TotalProgressiveBullets)"
+                        }
+                        elseif ($currentSlide -lt $totalSlides - 1) {
+                            # Move to next slide and reset bullets to 0
                             $currentSlide++
+                            $visibleBullets[$currentSlide] = 0
                             Write-Verbose "Advanced to slide $($currentSlide + 1)"
                         }
                         else {
@@ -185,8 +202,23 @@ function Show-Deck {
                         }
                     }
                     'Previous' {
-                        if ($currentSlide -gt 0) {
+                        # Check if current slide has revealed bullets that can be hidden
+                        if ($slide.PSObject.Properties['TotalProgressiveBullets'] -and 
+                            $visibleBullets[$currentSlide] -gt 0) {
+                            # Hide last bullet
+                            $visibleBullets[$currentSlide]--
+                            Write-Verbose "Hid bullet, now showing $($visibleBullets[$currentSlide])/$($slide.TotalProgressiveBullets)"
+                        }
+                        elseif ($currentSlide -gt 0) {
+                            # Move to previous slide and show all bullets
                             $currentSlide--
+                            $prevSlide = $presentation.Slides[$currentSlide]
+                            if ($prevSlide.PSObject.Properties['TotalProgressiveBullets']) {
+                                $visibleBullets[$currentSlide] = $prevSlide.TotalProgressiveBullets
+                            }
+                            else {
+                                $visibleBullets[$currentSlide] = 0
+                            }
                             Write-Verbose "Moved back to slide $($currentSlide + 1)"
                         }
                     }
