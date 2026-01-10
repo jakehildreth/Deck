@@ -94,9 +94,32 @@ function ConvertFrom-DeckMarkdown {
             }
             
             # Split markdown into slides by horizontal rules (---, ***, ___)
+            # BUT exclude horizontal rules inside code fences
             Write-Verbose "Splitting markdown into slides"
+            
+            # First, find all code blocks and replace them with placeholders
+            $codeBlockPattern = '(?s)```.*?```'
+            $codeBlocks = @{}
+            $codeBlockIndex = 0
+            $protectedContent = $markdownContent
+            
+            foreach ($match in [regex]::Matches($markdownContent, $codeBlockPattern)) {
+                $placeholder = "___CODEBLOCK_${codeBlockIndex}___"
+                $codeBlocks[$placeholder] = $match.Value
+                $protectedContent = $protectedContent.Replace($match.Value, $placeholder)
+                $codeBlockIndex++
+            }
+            
+            # Now split by horizontal rules (which won't match rules inside code blocks)
             $slidePattern = '(?m)^(?:---|___|\*\*\*)[ \t]*\r?$'
-            $slideContents = $markdownContent -split $slidePattern
+            $slideContents = $protectedContent -split $slidePattern
+            
+            # Restore code blocks in each slide
+            for ($i = 0; $i -lt $slideContents.Count; $i++) {
+                foreach ($placeholder in $codeBlocks.Keys) {
+                    $slideContents[$i] = $slideContents[$i].Replace($placeholder, $codeBlocks[$placeholder])
+                }
+            }
             
             # Check if any delimiters were found
             $noDelimiters = ($slideContents.Count -eq 1)

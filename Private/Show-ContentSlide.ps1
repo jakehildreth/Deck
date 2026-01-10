@@ -70,29 +70,77 @@ function Show-ContentSlide {
                 $bodyContent = $Slide.Content.Trim()
             }
 
-            # Parse and filter bullets based on visibility
+            # Parse code blocks FIRST before any bullet filtering
+            $codeBlockPattern = '(?s)```(\w+)?\r?\n(.*?)\r?\n```'
+            $segments = [System.Collections.Generic.List[object]]::new()
+            $lastIndex = 0
+            $progressiveBulletCount = 0
+            
             if ($bodyContent) {
-                $lines = $bodyContent -split "`r?`n"
-                $filteredLines = [System.Collections.Generic.List[string]]::new()
-                $progressiveBulletCount = 0
-                $visibleProgressiveBullets = 0
-                
-                foreach ($line in $lines) {
-                    # Check if line is a progressive bullet (*)
-                    if ($line -match '^\s*\*\s+') {
-                        $progressiveBulletCount++
-                        if ($visibleProgressiveBullets -lt $VisibleBullets) {
-                            $filteredLines.Add($line)
-                            $visibleProgressiveBullets++
-                        }
-                        else {
-                            # Add blank line placeholder for hidden progressive bullets
-                            $filteredLines.Add("")
+                foreach ($match in [regex]::Matches($bodyContent, $codeBlockPattern)) {
+                    # Add text before code block
+                    if ($match.Index -gt $lastIndex) {
+                        $textBefore = $bodyContent.Substring($lastIndex, $match.Index - $lastIndex).Trim()
+                        if ($textBefore) {
+                            $segments.Add(@{ Type = 'Text'; Content = $textBefore })
                         }
                     }
-                    # All other lines (including - bullets) are always shown
+                    
+                    # Add code block (no processing needed)
+                    $language = $match.Groups[1].Value
+                    $code = $match.Groups[2].Value.Trim()
+                    $segments.Add(@{ Type = 'Code'; Language = $language; Content = $code })
+                    
+                    $lastIndex = $match.Index + $match.Length
+                }
+                
+                # Add remaining text after last code block
+                if ($lastIndex -lt $bodyContent.Length) {
+                    $textAfter = $bodyContent.Substring($lastIndex).Trim()
+                    if ($textAfter) {
+                        $segments.Add(@{ Type = 'Text'; Content = $textAfter })
+                    }
+                }
+                
+                # If no code blocks found, treat entire content as text
+                if ($segments.Count -eq 0) {
+                    $segments.Add(@{ Type = 'Text'; Content = $bodyContent })
+                }
+                
+                # Now filter bullets ONLY in text segments
+                $filteredSegments = [System.Collections.Generic.List[object]]::new()
+                
+                foreach ($segment in $segments) {
+                    if ($segment.Type -eq 'Code') {
+                        # Code blocks pass through unchanged
+                        $filteredSegments.Add($segment)
+                    }
                     else {
-                        $filteredLines.Add($line)
+                        # Filter bullets in text segments
+                        $lines = $segment.Content -split "`r?`n"
+                        $filteredLines = [System.Collections.Generic.List[string]]::new()
+                        $visibleProgressiveBullets = 0
+                        
+                        foreach ($line in $lines) {
+                            # Check if line is a progressive bullet (*)
+                            if ($line -match '^\s*\*\s+') {
+                                $progressiveBulletCount++
+                                if ($visibleProgressiveBullets -lt $VisibleBullets) {
+                                    $filteredLines.Add($line)
+                                    $visibleProgressiveBullets++
+                                }
+                                else {
+                                    # Add blank line placeholder for hidden progressive bullets
+                                    $filteredLines.Add("")
+                                }
+                            }
+                            # All other lines (including - bullets) are always shown
+                            else {
+                                $filteredLines.Add($line)
+                            }
+                        }
+                        
+                        $filteredSegments.Add(@{ Type = 'Text'; Content = ($filteredLines -join "`n") })
                     }
                 }
                 
@@ -102,21 +150,18 @@ function Show-ContentSlide {
                 }
                 
                 # Store the full content height for consistent vertical alignment
-                # This ensures content doesn't jump as bullets are revealed
                 if (-not $Slide.PSObject.Properties['FullContentHeight']) {
-                    $fullContentText = $lines -join "`n"
-                    $fullText = [Spectre.Console.Text]::new($fullContentText)
+                    $fullText = [Spectre.Console.Text]::new($bodyContent)
                     $fullSize = Get-SpectreRenderableSize -Renderable $fullText -ContainerWidth $windowWidth
                     Add-Member -InputObject $Slide -NotePropertyName 'FullContentHeight' -NotePropertyValue $fullSize.Height -Force
                 }
                 
-                # Store the max line length of all content (including hidden bullets) for consistent horizontal alignment
+                # Store the max line length of all content for consistent horizontal alignment
                 if (-not $Slide.PSObject.Properties['MaxLineLength']) {
+                    $lines = $bodyContent -split "`r?`n"
                     $maxLength = ($lines | Measure-Object -Property Length -Maximum).Maximum
                     Add-Member -InputObject $Slide -NotePropertyName 'MaxLineLength' -NotePropertyValue $maxLength -Force
                 }
-                
-                $bodyContent = $filteredLines -join "`n"
             }
             
             # Get border color and style
@@ -172,33 +217,61 @@ function Show-ContentSlide {
                 $renderables.Add($figlet)
             }
 
-            # Add body content as text
+            # Add body content with code block support
             if ($bodyContent) {
-                # Manually pad each line to center the block
-                $lines = $bodyContent -split "`r?`n"
-                
-                # Use stored max line length for consistent alignment during bullet reveal
-                if ($Slide.PSObject.Properties['MaxLineLength']) {
-                    $maxLineLength = $Slide.MaxLineLength
+                # Render each segment (already parsed and filtered above)
+                foreach ($segment in $filteredSegments) {
+                    if ($segment.Type -eq 'Code') {
+                        # Render code block in a panel with dark background
+                        Write-Verbose "  Code block: $($segment.Language)"
+                        
+                        # Create markup text for the code
+                        $codeMarkup = [Spectre.Console.Markup]::Escape($segment.Content)
+                        $codeText = [Spectre.Console.Markup]::new("[grey on grey11]$codeMarkup[/]")
+                        
+                        # Put code in a panel
+                        $codePanel = [Spectre.Console.Panel]::new($codeText)
+                        $codePanel.Border = [Spectre.Console.BoxBorder]::Rounded
+                        $codePanel.Padding = [Spectre.Console.Padding]::new(2, 1, 2, 1)
+                        
+                        # Add language label if specified
+                        if ($segment.Language) {
+                            $codePanel.Header = [Spectre.Console.PanelHeader]::new($segment.Language)
+                        }
+                        
+                        # Center the entire code panel
+                        $centeredCodePanel = Format-SpectreAligned -Data $codePanel -HorizontalAlignment Center
+                        
+                        $renderables.Add($centeredCodePanel)
+                    }
+                    else {
+                        # Render text content with centering
+                        $lines = $segment.Content -split "`r?`n"
+                        
+                        # Use stored max line length for consistent alignment during bullet reveal
+                        if ($Slide.PSObject.Properties['MaxLineLength']) {
+                            $maxLineLength = $Slide.MaxLineLength
+                        }
+                        else {
+                            $maxLineLength = ($lines | Measure-Object -Property Length -Maximum).Maximum
+                        }
+                        
+                        # Calculate padding to center the block within the panel
+                        $availableWidth = $windowWidth - 8  # Account for panel padding (4 left + 4 right)
+                        $leftPadding = [math]::Max(0, [math]::Floor(($availableWidth - $maxLineLength) / 2))
+                        
+                        # Rebuild content with padding
+                        $paddedLines = $lines | ForEach-Object {
+                            (" " * $leftPadding) + $_
+                        }
+                        $paddedContent = $paddedLines -join "`n"
+                        
+                        # Create text with left justification (padding is already in the string)
+                        $text = [Spectre.Console.Text]::new($paddedContent)
+                        $text.Justification = [Spectre.Console.Justify]::Left
+                        $renderables.Add($text)
+                    }
                 }
-                else {
-                    $maxLineLength = ($lines | Measure-Object -Property Length -Maximum).Maximum
-                }
-                
-                # Calculate padding to center the block within the panel
-                $availableWidth = $windowWidth - 8  # Account for panel padding (4 left + 4 right)
-                $leftPadding = [math]::Max(0, [math]::Floor(($availableWidth - $maxLineLength) / 2))
-                
-                # Rebuild content with padding
-                $paddedLines = $lines | ForEach-Object {
-                    (" " * $leftPadding) + $_
-                }
-                $paddedContent = $paddedLines -join "`n"
-                
-                # Create text with left justification (padding is already in the string)
-                $text = [Spectre.Console.Text]::new($paddedContent)
-                $text.Justification = [Spectre.Console.Justify]::Left
-                $renderables.Add($text)
             }
 
             # Combine renderables into a Rows layout

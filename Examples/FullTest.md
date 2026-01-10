@@ -46,14 +46,12 @@ Create a Markdown file with your content:
 ```markdown
 # My Presentation
 
- ---
+---
 
 ## Section Title
-
- ---
+---
 
 ### Slide with Content
-
 Your content here
 ```
 
@@ -64,7 +62,6 @@ Your content here
 ```powershell
 Show-Deck -Path ./presentation.md
 ```
-
 That's it!
 
 ---
@@ -109,12 +106,14 @@ Great for lists and references.
 
 Configure appearance in frontmatter:
 
- ---
+```yaml
+---
 background: Black
 foreground: Cyan1
 border: Magenta
 borderStyle: rounded
- ---
+---
+```
 
 ---
 
