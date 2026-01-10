@@ -258,6 +258,23 @@ function Show-Deck {
             }
 
             Write-Verbose "Presentation ended"
+            
+            # Show goodbye message
+            Clear-Host
+            $windowHeight = $Host.UI.RawUI.WindowSize.Height
+            $windowWidth = $Host.UI.RawUI.WindowSize.Width
+            $message = "Goodbye! <3"
+            
+            # Center vertically and horizontally
+            $verticalPadding = [math]::Floor($windowHeight / 2)
+            $horizontalPadding = [math]::Max(0, [math]::Floor(($windowWidth - $message.Length) / 2))
+            
+            Write-Host ("`n" * $verticalPadding) -NoNewline
+            Write-Host (" " * $horizontalPadding) -NoNewline
+            Write-Host $message -ForegroundColor Magenta
+            
+            Start-Sleep -Milliseconds 800
+            Clear-Host
             }
             finally {
                 # Show cursor again

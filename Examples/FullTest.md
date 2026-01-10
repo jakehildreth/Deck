@@ -4,46 +4,137 @@ foreground: Cyan1
 border: Blue
 ---
 
-# An Intro to Deck
+# Deck
 
 ---
 
-## Getting Started
+## Terminal Presentations Made Simple
+
+---
+
+### What is Deck?
+
+A PowerShell module for creating terminal-based presentations from Markdown files.
+
+* No GUI required
+* Works cross-platform
+* Simple Markdown syntax
+* Beautiful figlet text rendering
 
 ---
 
 ### Installation
 
-Run the following command:
+From PowerShell Gallery:
 
 ```powershell
-Install-Module Deck
+Install-Module Deck -Scope CurrentUser
+```
+
+Or clone from GitHub:
+
+```powershell
+git clone https://github.com/jakehildreth/Deck.git
 ```
 
 ---
 
-### Usage
+### Quick Start
 
-Simply point to your markdown file:
+Create a Markdown file with your content:
+
+```markdown
+# My Presentation
+
+ ---
+
+## Section Title
+
+ ---
+
+### Slide with Content
+
+Your content here
+```
+
+---
+
+### Run Your Deck
 
 ```powershell
 Show-Deck -Path ./presentation.md
 ```
 
----
-
-### Features
-
-* Progressive bullet reveal
-* Full-height borders
-* Figlet text rendering
-* Syntax highlighted code blocks
+That's it!
 
 ---
 
-### Navigation
+## Key Features
 
-- Use arrow keys to navigate
-- Press Space or Enter to advance
-- Press Escape to exit
-- Press ? for help
+---
+
+### Progressive Bullets
+
+Use asterisks for bullets that reveal one at a time:
+
+* This appears first
+* Then this
+* Finally this
+
+Perfect for building suspense!
+
+---
+
+### Static Bullets
+
+Use hyphens for bullets that appear all at once:
+
+- All visible
+- At the same time
+- No progressive reveal
+
+Great for lists and references.
+
+---
+
+### Three Slide Types
+
+- Title slides: Single # heading, large text
+- Section slides: Single ## heading, medium text  
+- Content slides: ### heading with body content
+
+---
+
+### Customization
+
+Configure appearance in frontmatter:
+
+ ---
+background: Black
+foreground: Cyan1
+border: Magenta
+borderStyle: rounded
+ ---
+
+---
+
+### Navigation Controls
+
+- Forward: Right, Down, Space, Enter, n, Page Down
+- Backward: Left, Up, Backspace, p, Page Up
+- Exit: Esc or Ctrl+C
+- Help: Press ?
+
+---
+
+## Thanks for Watching!
+
+---
+
+### Learn More
+
+GitHub: github.com/jakehildreth/Deck
+
+PowerShell Gallery: Install-Module Deck
+
+Built with PwshSpectreConsole
