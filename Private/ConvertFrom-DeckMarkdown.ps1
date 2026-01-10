@@ -95,7 +95,7 @@ function ConvertFrom-DeckMarkdown {
             
             # Split markdown into slides by horizontal rules (---, ***, ___)
             Write-Verbose "Splitting markdown into slides"
-            $slidePattern = '(?m)^(?:---|___|\*\*\*)[ \t]*$'
+            $slidePattern = '(?m)^(?:---|___|\*\*\*)[ \t]*\r?$'
             $slideContents = $markdownContent -split $slidePattern
             
             # Check if any delimiters were found
