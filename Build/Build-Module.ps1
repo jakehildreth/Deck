@@ -1,25 +1,50 @@
-﻿Build-Module -ModuleName 'Slides' {
+﻿param (
+    # A CalVer string if you need to manually override the default yyyy.M.d version string.
+    [string]$CalVer,
+    [switch]$PublishToPSGallery,
+    [string]$PSGalleryAPIPath
+)
+
+if (Get-Module -Name 'PSPublishModule' -ListAvailable) {
+    Write-Verbose 'PSPublishModule is installed.'
+} else {
+    Write-Verbose 'PSPublishModule is not installed. Attempting installation.'
+    try {
+        Install-Module -Name Pester -AllowClobber -Scope CurrentUser -SkipPublisherCheck -Force
+        Install-Module -Name PSScriptAnalyzer -AllowClobber -Scope CurrentUser -Force
+        Install-Module -Name PSPublishModule -AllowClobber -Scope CurrentUser -Force
+    } catch {
+        Write-Error "PSPublishModule installation failed. $_"
+    }
+}
+
+Update-Module -Name PSPublishModule
+Import-Module -Name PSPublishModule -Force
+
+$CopyrightYear = if ($Calver) { $CalVer.Split('.')[0] } else { (Get-Date -Format yyyy) }
+
+Build-Module -ModuleName 'Deck' {
     # Usual defaults as per standard module
     $Manifest = [ordered] @{
-        ModuleVersion          = '1.0.0'
-        CompatiblePSEditions   = @('Desktop', 'Core')
+        ModuleVersion        = if ($Calver) { $CalVer } else { (Get-Date -Format yyyy.M.d.Hmm) }
+        CompatiblePSEditions   = @('Core')
         GUID                   = '409fc543-77b9-48d6-87cc-8bee16c2a20d'
-        Author                 = 'Author'
-        CompanyName            = 'CompanyName'
-        Copyright              = "(c) 2011 - $((Get-Date).Year) Author @ CompanyName. All rights reserved."
-        Description            = 'Simple project Slides'
-        PowerShellVersion      = '5.1'
+        Author                 = 'Jake Hildreth'
+        CompanyName            = 'Gilmour Technologies Ltd'
+        Copyright              = "(c) 2026 - $CopyrightYear Jake Hildreth @ Gilmour Technologies Ltd. All rights reserved."
+        Description            = 'Deck makes terminal presentations easy!'
+        PowerShellVersion      = '7.4'
         Tags                   = @('Windows', 'MacOS', 'Linux')
     }
     New-ConfigurationManifest @Manifest
 
     # Add standard module dependencies (directly, but can be used with loop as well)
-    #New-ConfigurationModule -Type RequiredModule -Name 'PSSharedGoods' -Guid 'Auto' -Version 'Latest'
+    New-ConfigurationModule -Type RequiredModule -Name 'PwshSpectreConsole', 'Microsoft.PowerShell.PSResourceGet' -Guid 'Auto' -Version 'Latest'
 
     # Add external module dependencies, using loop for simplicity
-    #foreach ($Module in @('Microsoft.PowerShell.Utility', 'Microsoft.PowerShell.Archive', 'Microsoft.PowerShell.Management', 'Microsoft.PowerShell.Security')) {
-    #    New-ConfigurationModule -Type ExternalModule -Name $Module
-    #}
+    foreach ($Module in @('Microsoft.PowerShell.Utility', 'Microsoft.PowerShell.Archive', 'Microsoft.PowerShell.Management', 'Microsoft.PowerShell.Security')) {
+        New-ConfigurationModule -Type ExternalModule -Name $Module
+    }
 
     # Add approved modules, that can be used as a dependency, but only when specific function from those modules is used
     # And on that time only that function and dependant functions will be copied over
@@ -27,6 +52,7 @@
     #New-ConfigurationModule -Type ApprovedModule -Name 'PSSharedGoods', 'PSWriteColor', 'Connectimo', 'PSUnifi', 'PSWebToolbox', 'PSMyPassword'
 
     #New-ConfigurationModuleSkip -IgnoreFunctionName 'Invoke-Formatter', 'Find-Module' -IgnoreModuleName 'platyPS'
+    New-ConfigurationModuleSkip -IgnoreFunctionName 'Clear-Host' -IgnoreModuleName 'platyPS'
 
     $ConfigurationFormat = [ordered] @{
         RemoveComments                              = $false
@@ -59,14 +85,9 @@
 
         UseCorrectCasingEnable                      = $true
     }
-    # format PSD1 and PSM1 files when merging into a single file
-    # enable formatting is not required as Configuration is provided
-    New-ConfigurationFormat -ApplyTo 'OnMergePSM1', 'OnMergePSD1' -Sort None @ConfigurationFormat
-    # format PSD1 and PSM1 files within the module
-    # enable formatting is required to make sure that formatting is applied (with default settings)
-    New-ConfigurationFormat -ApplyTo 'DefaultPSD1', 'DefaultPSM1' -EnableFormatting -Sort None
-    # when creating PSD1 use special style without comments and with only required parameters
-    New-ConfigurationFormat -ApplyTo 'DefaultPSD1', 'OnMergePSD1' -PSD1Style 'Minimal'
+    # Disabled all formatting due to PSScriptAnalyzer issues with custom attributes and line endings
+    # Use 'Minimal' style for PSD1 generation (without formatting)
+    New-ConfigurationFormat -ApplyTo 'DefaultPSD1' -PSD1Style 'Minimal'
 
     # configuration for documentation, at the same time it enables documentation processing
     New-ConfigurationDocumentation -Enable:$false -StartClean -UpdateWhenNew -PathReadme 'Docs\Readme.md' -Path 'Docs'
@@ -75,10 +96,16 @@
 
     New-ConfigurationBuild -Enable:$true -SignModule:$false -DeleteTargetModuleBeforeBuild -MergeModuleOnBuild -MergeFunctionsFromApprovedModules -DoNotAttemptToFixRelativePaths
 
-    #New-ConfigurationArtefact -Type Unpacked -Enable -Path "$PSScriptRoot\..\Artefacts\Unpacked" #-RequiredModulesPath "$PSScriptRoot\..\Artefacts\Modules"
-    #New-ConfigurationArtefact -Type Packed -Enable -Path "$PSScriptRoot\..\Artefacts\Packed" -IncludeTagName
-
     # global options for publishing to github/psgallery
-    #New-ConfigurationPublish -Type PowerShellGallery -FilePath 'C:\Support\Important\PowerShellGalleryAPI.txt' -Enabled:$false
-    #New-ConfigurationPublish -Type GitHub -FilePath 'C:\Support\Important\GitHubAPI.txt' -UserName 'CompanyName' -Enabled:$false
+    if($PublishToPSGallery) {
+        if ($PSGalleryAPIKey) {
+            # Use API key directly (from environment variable in CI)
+            New-ConfigurationPublish -Type PowerShellGallery -ApiKey $PSGalleryAPIKey -Enabled:$true
+        } elseif ($PSGalleryAPIPath) {
+            # Use API key from file (for local development)
+            New-ConfigurationPublish -Type PowerShellGallery -FilePath $PSGalleryAPIPath -Enabled:$true
+        } else {
+            Write-Error "PublishToPSGallery specified but neither PSGalleryAPIKey nor PSGalleryAPIPath provided."
+        }
+    }
 }
