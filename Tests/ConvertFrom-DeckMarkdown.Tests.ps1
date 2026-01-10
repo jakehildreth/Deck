@@ -1,12 +1,12 @@
 BeforeAll {
-    . $PSScriptRoot/../Private/ConvertFrom-SlideMarkdown.ps1
+    . $PSScriptRoot/../Private/ConvertFrom-DeckMarkdown.ps1
     
     # Create test markdown files
     $script:testDir = Join-Path $TestDrive 'SlideTests'
     New-Item -Path $script:testDir -ItemType Directory -Force | Out-Null
 }
 
-Describe 'ConvertFrom-SlideMarkdown' {
+Describe 'ConvertFrom-DeckMarkdown' {
     Context 'When parsing markdown with YAML frontmatter' {
         BeforeAll {
             $testFile = Join-Path $script:testDir 'test-with-yaml.md'
@@ -26,7 +26,7 @@ Content here
         }
 
         It 'Should parse YAML frontmatter correctly' {
-            $result = ConvertFrom-SlideMarkdown -Path $testFile -WarningAction SilentlyContinue
+            $result = ConvertFrom-DeckMarkdown -Path $testFile -WarningAction SilentlyContinue
             $result.Settings.background | Should -Be 'blue'
             $result.Settings.foreground | Should -Be 'yellow'
             $result.Settings.border | Should -Be 'red'
@@ -34,19 +34,19 @@ Content here
         }
 
         It 'Should extract markdown content without frontmatter' {
-            $result = ConvertFrom-SlideMarkdown -Path $testFile -WarningAction SilentlyContinue
+            $result = ConvertFrom-DeckMarkdown -Path $testFile -WarningAction SilentlyContinue
             $result.Slides[0].Content | Should -Not -Match '^---'
             $result.Slides[0].Content | Should -Match '# Test Slide'
         }
 
         It 'Should preserve default values for unspecified settings' {
-            $result = ConvertFrom-SlideMarkdown -Path $testFile -WarningAction SilentlyContinue
+            $result = ConvertFrom-DeckMarkdown -Path $testFile -WarningAction SilentlyContinue
             $result.Settings.paginationStyle | Should -Be 'minimal'
             $result.Settings.borderStyle | Should -Be 'rounded'
         }
 
         It 'Should return slide objects with properties' {
-            $result = ConvertFrom-SlideMarkdown -Path $testFile -WarningAction SilentlyContinue
+            $result = ConvertFrom-DeckMarkdown -Path $testFile -WarningAction SilentlyContinue
             $result.Slides | Should -HaveCount 1
             $result.Slides[0].Number | Should -Be 1
             $result.Slides[0].Content | Should -Not -BeNullOrEmpty
@@ -66,21 +66,21 @@ Content here
         }
 
         It 'Should use default settings' {
-            $result = ConvertFrom-SlideMarkdown -Path $testFile
+            $result = ConvertFrom-DeckMarkdown -Path $testFile
             $result.Settings.background | Should -Be 'black'
             $result.Settings.foreground | Should -Be 'white'
             $result.Settings.pagination | Should -Be $false
         }
 
         It 'Should return all markdown as single slide' {
-            $result = ConvertFrom-SlideMarkdown -Path $testFile -WarningAction SilentlyContinue
+            $result = ConvertFrom-DeckMarkdown -Path $testFile -WarningAction SilentlyContinue
             $result.Slides | Should -HaveCount 1
             $result.Slides[0].Content | Should -Match '# Test Slide'
         }
 
         It 'Should warn about no slide delimiters' {
             $warnings = @()
-            ConvertFrom-SlideMarkdown -Path $testFile -WarningVariable warnings -WarningAction SilentlyContinue | Out-Null
+            ConvertFrom-DeckMarkdown -Path $testFile -WarningVariable warnings -WarningAction SilentlyContinue | Out-Null
             $warnings | Should -Not -BeNullOrEmpty
             $warnings[0] | Should -Match 'No slide delimiters found'
         }
@@ -103,24 +103,24 @@ paginationStyle: fraction
         }
 
         It 'Should handle hex color values' {
-            $result = ConvertFrom-SlideMarkdown -Path $testFile -WarningAction SilentlyContinue
+            $result = ConvertFrom-DeckMarkdown -Path $testFile -WarningAction SilentlyContinue
             $result.Settings.background | Should -Be '#FF0000'
         }
 
         It 'Should handle quoted strings' {
-            $result = ConvertFrom-SlideMarkdown -Path $testFile -WarningAction SilentlyContinue
+            $result = ConvertFrom-DeckMarkdown -Path $testFile -WarningAction SilentlyContinue
             $result.Settings.header | Should -Be 'My Presentation'
         }
 
         It 'Should handle boolean false' {
-            $result = ConvertFrom-SlideMarkdown -Path $testFile -WarningAction SilentlyContinue
+            $result = ConvertFrom-DeckMarkdown -Path $testFile -WarningAction SilentlyContinue
             $result.Settings.pagination | Should -Be $false
         }
     }
 
     Context 'When file path is invalid' {
         It 'Should throw a validation error' {
-            { ConvertFrom-SlideMarkdown -Path 'nonexistent.md' } | Should -Throw
+            { ConvertFrom-DeckMarkdown -Path 'nonexistent.md' } | Should -Throw
         }
     }
 
@@ -139,12 +139,12 @@ unknownSetting: value
         }
 
         It 'Should warn about unknown settings' {
-            $result = ConvertFrom-SlideMarkdown -Path $testFile -WarningVariable warnings -WarningAction SilentlyContinue
+            $result = ConvertFrom-DeckMarkdown -Path $testFile -WarningVariable warnings -WarningAction SilentlyContinue
             $warnings | Should -Not -BeNullOrEmpty
         }
 
         It 'Should still parse known settings' {
-            $result = ConvertFrom-SlideMarkdown -Path $testFile -WarningAction SilentlyContinue
+            $result = ConvertFrom-DeckMarkdown -Path $testFile -WarningAction SilentlyContinue
             $result.Settings.background | Should -Be 'blue'
         }
     }
@@ -173,26 +173,26 @@ Content here
         }
 
         It 'Should split by --- delimiter' {
-            $result = ConvertFrom-SlideMarkdown -Path $testFile
+            $result = ConvertFrom-DeckMarkdown -Path $testFile
             $result.Slides | Should -HaveCount 3
         }
 
         It 'Should number slides correctly' {
-            $result = ConvertFrom-SlideMarkdown -Path $testFile
+            $result = ConvertFrom-DeckMarkdown -Path $testFile
             $result.Slides[0].Number | Should -Be 1
             $result.Slides[1].Number | Should -Be 2
             $result.Slides[2].Number | Should -Be 3
         }
 
         It 'Should preserve slide content' {
-            $result = ConvertFrom-SlideMarkdown -Path $testFile
+            $result = ConvertFrom-DeckMarkdown -Path $testFile
             $result.Slides[0].Content | Should -Match '# First Slide'
             $result.Slides[1].Content | Should -Match '## Second Slide'
             $result.Slides[2].Content | Should -Match '### Third Slide'
         }
 
         It 'Should mark slides as not blank' {
-            $result = ConvertFrom-SlideMarkdown -Path $testFile
+            $result = ConvertFrom-DeckMarkdown -Path $testFile
             $result.Slides[0].IsBlank | Should -Be $false
             $result.Slides[1].IsBlank | Should -Be $false
             $result.Slides[2].IsBlank | Should -Be $false
@@ -221,7 +221,7 @@ ___
         }
 
         It 'Should split by ---, ***, and ___ delimiters' {
-            $result = ConvertFrom-SlideMarkdown -Path $testFile
+            $result = ConvertFrom-DeckMarkdown -Path $testFile
             $result.Slides | Should -HaveCount 4
         }
     }
@@ -242,7 +242,7 @@ ___
         }
 
         It 'Should skip empty slides' {
-            $result = ConvertFrom-SlideMarkdown -Path $testFile
+            $result = ConvertFrom-DeckMarkdown -Path $testFile
             $result.Slides | Should -HaveCount 2
             $result.Slides[0].Content | Should -Match '# Slide 1'
             $result.Slides[1].Content | Should -Match '# Slide 2'
@@ -267,12 +267,12 @@ ___
         }
 
         It 'Should include intentionally blank slides' {
-            $result = ConvertFrom-SlideMarkdown -Path $testFile
+            $result = ConvertFrom-DeckMarkdown -Path $testFile
             $result.Slides | Should -HaveCount 3
         }
 
         It 'Should mark intentionally blank slides correctly' {
-            $result = ConvertFrom-SlideMarkdown -Path $testFile
+            $result = ConvertFrom-DeckMarkdown -Path $testFile
             $result.Slides[1].IsBlank | Should -Be $true
         }
     }

@@ -19,7 +19,7 @@ A PowerShell module for creating terminal-based presentations from Markdown file
 * No GUI required
 * Works cross-platform
 * Simple Markdown syntax
-* Beautiful figlet text rendering
+* Figlet text rendering for title text
 
 ---
 

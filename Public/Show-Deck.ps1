@@ -56,13 +56,13 @@ function Show-Deck {
         Write-Verbose "Starting presentation from: $Path"
         
         # Ensure PwshSpectreConsole is loaded
-        Import-SlidesDependency
+        Import-DeckDependency
     }
 
     process {
         try {
             # Parse the markdown file
-            $presentation = ConvertFrom-SlideMarkdown -Path $Path
+            $presentation = ConvertFrom-DeckMarkdown -Path $Path
             Write-Verbose "Loaded $($presentation.Slides.Count) slides"
 
             # Apply parameter overrides to settings

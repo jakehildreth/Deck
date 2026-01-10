@@ -1,6 +1,6 @@
-# Slides Module Implementation Guidelines
+# Deck Module Implementation Guidelines
 
-This document defines the design specifications for the Slides PowerShell module, which converts Markdown files into terminal-based presentations using PwshSpectreConsole.
+This document defines the design specifications for the Deck PowerShell module, which converts Markdown files into terminal-based presentations using PwshSpectreConsole.
 
 ## Module Overview
 
@@ -13,8 +13,8 @@ Convert Markdown files into interactive terminal slide presentations with rich A
 - On failure: Display sad ASCII art with helpful installation instructions
 
 ### Public Cmdlets
-- `Show-Slides` — Run a live presentation from a Markdown file
-- `Export-Slides` — Generate a standalone `.ps1` script from a Markdown file
+- `Show-Deck` — Run a live presentation from a Markdown file
+- `Export-Deck` — Generate a standalone `.ps1` script from a Markdown file
 
 ## Input Format
 
@@ -213,34 +213,36 @@ When `-Watch` is specified on `Show-Slides`:
 ## Module Structure
 
 ```
-Slides/
-├── Slides.psd1              # Module manifest
-├── Slides.psm1              # Module loader
+Deck/
+├── Deck.psd1                          # Module manifest
+├── Deck.psm1                          # Module loader
 ├── Public/
-│   ├── Show-Slides.ps1      # Live presentation cmdlet
-│   └── Export-Slides.ps1    # Export to script cmdlet
+│   ├── Show-Deck.ps1                  # Live presentation cmdlet
+│   └── Export-Deck.ps1                # Export to script cmdlet (future)
 ├── Private/
-│   ├── Import-SlidesDependency.ps1   # Dependency management
-│   ├── ConvertFrom-SlideMarkdown.ps1 # Markdown parser
-│   ├── Get-SlideType.ps1             # Slide type detection
-│   ├── Show-Slide.ps1                # Single slide renderer
-│   ├── Show-TitleSlide.ps1           # Title slide renderer
-│   ├── Show-SectionSlide.ps1         # Section slide renderer
-│   ├── Show-ContentSlide.ps1         # Content slide renderer
-│   ├── Show-TwoColumnSlide.ps1       # Two-column renderer
-│   ├── Show-ImageSlide.ps1           # Left/Right image renderer
-│   ├── ConvertTo-SpectreMarkup.ps1   # Markdown to Spectre conversion
-│   ├── Get-SlideNavigation.ps1       # Input handling
-│   └── Show-SadFace.ps1              # Failure ASCII art
-├── Fonts/                   # Bundled .flf figlet fonts
+│   ├── ConvertFrom-DeckMarkdown.ps1   # Markdown parser
+│   ├── Get-SlideNavigation.ps1        # Input handling
+│   ├── Import-DeckDependency.ps1      # Dependency management
+│   ├── Show-ContentSlide.ps1          # Content slide renderer
+│   ├── Show-SadFace.ps1               # Failure ASCII art
+│   ├── Show-SectionSlide.ps1          # Section slide renderer
+│   └── Show-TitleSlide.ps1            # Title slide renderer
+├── Fonts/                             # Bundled .flf figlet fonts
+│   ├── small.flf                      # Section slide font
+│   └── mini.flf                       # Content header font
+├── Tests/                             # Pester tests
+│   ├── Show-Deck.Tests.ps1
+│   ├── Get-SlideNavigation.Tests.ps1
+│   └── Show-ContentSlide.Tests.ps1
 └── Examples/
-    └── Example.md           # Example presentation
+    ├── FullTest.md                    # Comprehensive demo
+    └── BulletTest.md                  # Bullet reveal demo
 ```
 
 ## Implementation Phases
 
 ### Phase 1: Foundation
-- [x] **Module structure** — Create basic manifest (Slides.psd1), module file (Slides.psm1), and folder structure (Public/, Private/, Fonts/, Examples/)
+- [x] **Module structure** — Create basic manifest (Deck.psd1), module file (Deck.psm1), and folder structure (Public/, Private/, Fonts/, Examples/)
 - [x] **Dependency loader** — Implement PwshSpectreConsole loading with fallback to Install-PSResource (with sad face ASCII art on failure)
 - [x] **Test** — Verify module loads correctly and handles missing dependencies gracefully
 
@@ -266,9 +268,18 @@ Slides/
 
 ### Phase 6: Full Navigation
 - [x] **Complete navigation** — Implement all navigation keys (arrows, space, enter, n/p, page up/down)
-- [ ] **Bullet reveal** — Implement progressive bullet point reveal for `*` items
+- [x] **Bullet reveal** — Implement progressive bullet point reveal for `*` items
+- [x] **Backward bullet navigation** — Hide bullets when navigating backward
 - [ ] **Content scrolling** — Implement smart scrolling for overflow content
-- [x] **Test** — Verify navigation key handlers (15 tests passing)
+- [x] **Test** — Verify navigation key handlers (77 tests passing)
+
+### Phase 6.5: Visual Polish
+- [x] **Full-height borders** — All slide types fill terminal viewport
+- [x] **Consistent border heights** — Fixed padding calculations to prevent shifting
+- [x] **Accurate height measurement** — Account for horizontal padding in figlet wrapping
+- [x] **Cursor hiding** — Hide cursor during presentation
+- [x] **Exit message** — Display "Goodbye! <3" in magenta on exit
+- [x] **Help screen** — Press ? to show navigation controls
 
 ### Phase 7: Validation & Polish
 - [ ] **Image validation** — Implement pre-load validation with -Strict mode

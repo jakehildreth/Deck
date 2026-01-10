@@ -1,4 +1,4 @@
-function ConvertFrom-SlideMarkdown {
+function ConvertFrom-DeckMarkdown {
     <#
     .SYNOPSIS
         Parses markdown file for slide presentation data.
@@ -11,7 +11,7 @@ function ConvertFrom-SlideMarkdown {
         Path to the markdown file to parse.
 
     .EXAMPLE
-        ConvertFrom-SlideMarkdown -Path ".\presentation.md"
+        ConvertFrom-DeckMarkdown -Path ".\presentation.md"
         Parses the markdown file and returns slide data.
 
     .OUTPUTS

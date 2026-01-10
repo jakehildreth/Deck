@@ -1,12 +1,12 @@
 BeforeAll {
-    . $PSScriptRoot/../Private/Import-SlidesDependency.ps1
+    . $PSScriptRoot/../Private/Import-DeckDependency.ps1
     . $PSScriptRoot/../Private/Show-SadFace.ps1
 }
 
-Describe 'Import-SlidesDependency' {
+Describe 'Import-DeckDependency' {
     Context 'When PwshSpectreConsole is available' {
         It 'Should import PwshSpectreConsole successfully' {
-            { Import-SlidesDependency } | Should -Not -Throw
+            { Import-DeckDependency } | Should -Not -Throw
         }
     }
 }

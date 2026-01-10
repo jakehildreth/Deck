@@ -1,4 +1,4 @@
-function Import-SlidesDependency {
+function Import-DeckDependency {
     <#
     .SYNOPSIS
         Imports PwshSpectreConsole module with automatic installation fallback.
@@ -9,7 +9,7 @@ function Import-SlidesDependency {
         instructions before terminating.
 
     .EXAMPLE
-        Import-SlidesDependency
+        Import-DeckDependency
         Attempts to load PwshSpectreConsole, installing if necessary.
 
     .OUTPUTS
