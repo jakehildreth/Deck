@@ -47,9 +47,9 @@ function Show-ContentSlide {
             Clear-Host
 
             # Get terminal dimensions
-            # Account for Out-SpectreHost adding a trailing newline
+            # Account for rendering behavior to prevent scrolling
             $windowWidth = $Host.UI.RawUI.WindowSize.Width
-            $windowHeight = $Host.UI.RawUI.WindowSize.Height - 2
+            $windowHeight = $Host.UI.RawUI.WindowSize.Height - 1
 
             # Determine if slide has a header and extract content
             $hasHeader = $false
@@ -212,7 +212,7 @@ function Show-ContentSlide {
             # Calculate padding
             $borderHeight = 2
             $remainingSpace = $windowHeight - $actualContentHeight - $borderHeight
-            $topPadding = [math]::Max(0, [math]::Floor($remainingSpace / 2))
+            $topPadding = [math]::Max(0, [math]::Ceiling($remainingSpace / 2.0))
             $bottomPadding = [math]::Max(0, $remainingSpace - $topPadding)
             
             Write-Verbose "  Content height: $actualContentHeight, top padding: $topPadding, bottom padding: $bottomPadding"

@@ -92,24 +92,35 @@ function Show-SectionSlide {
             }
 
             # Create panel with internal padding calculated to fill terminal height
-            # Account for Out-SpectreHost adding a trailing newline
-            $windowHeight = $Host.UI.RawUI.WindowSize.Height - 2
+            # Account for rendering behavior to prevent scrolling
+            $windowHeight = $Host.UI.RawUI.WindowSize.Height - 1
             $windowWidth = $Host.UI.RawUI.WindowSize.Width
             
-            # Measure actual figlet height
-            $figletSize = Get-SpectreRenderableSize -Renderable $figlet -ContainerWidth $windowWidth
-            $actualFigletHeight = $figletSize.Height
-            
-            $borderHeight = 2
-            $remainingSpace = $windowHeight - $actualFigletHeight - $borderHeight
-            $topPadding = [math]::Max(0, [math]::Floor($remainingSpace / 2))
-            $bottomPadding = [math]::Max(0, $remainingSpace - $topPadding)
-            
+            # Set panel to expand and measure what we need to fill
             $panel = [Spectre.Console.Panel]::new($figlet)
             $panel.Expand = $true
+            
+            # Add border style first
+            if ($borderStyle) {
+                $panel.Border = [Spectre.Console.BoxBorder]::$borderStyle
+            }
+            
+            # Measure figlet with horizontal padding already applied
+            # Horizontal padding is 4 on each side = 8 total
+            $contentWidth = $windowWidth - 8
+            $figletSize = Get-SpectreRenderableSize -Renderable $figlet -ContainerWidth $contentWidth
+            $actualFigletHeight = $figletSize.Height
+            
+            # Calculate vertical padding needed
+            # Total height = border (2) + top padding + content + bottom padding
+            $borderHeight = 2
+            $remainingSpace = $windowHeight - $actualFigletHeight - $borderHeight
+            $topPadding = [math]::Max(0, [math]::Ceiling($remainingSpace / 2.0))
+            $bottomPadding = [math]::Max(0, $remainingSpace - $topPadding)
+            
             $panel.Padding = [Spectre.Console.Padding]::new(4, $topPadding, 4, $bottomPadding)
             
-            # Add border style
+            # Border style already added above
             if ($borderStyle) {
                 $panel.Border = [Spectre.Console.BoxBorder]::$borderStyle
             }
