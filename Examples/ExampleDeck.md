@@ -70,6 +70,14 @@ That's it!
 
 ---
 
+### Three Slide Types
+
+- Title slides: Single # heading, large text
+- Section slides: Single ## heading, medium text  
+- Content slides: ### heading with body content
+
+---
+
 ### Progressive Bullets
 
 Use asterisks for bullets that reveal one at a time:
@@ -91,38 +99,6 @@ Use hyphens for bullets that appear all at once:
 - No progressive reveal
 
 Great for lists and references.
-
----
-
-### Three Slide Types
-
-- Title slides: Single # heading, large text
-- Section slides: Single ## heading, medium text  
-- Content slides: ### heading with body content
-
----
-
-### Customization
-
-Configure appearance in frontmatter:
-
-```yaml
----
-background: Black
-foreground: Cyan1
-border: Magenta
-borderStyle: rounded
----
-```
-
----
-
-### Navigation Controls
-
-- Forward: Right, Down, Space, Enter, n, Page Down
-- Backward: Left, Up, Backspace, p, Page Up
-- Exit: Esc or Ctrl+C
-- Help: Press ?
 
 ---
 
@@ -152,8 +128,6 @@ Mix formatting: **Bold with `code`** or *italic with ~~strike~~*
 
 Split content into columns using three pipes.
 
-|||
-
 First column with **bold** text.
 
 |||
@@ -163,6 +137,30 @@ Second column with *italic* text.
 |||
 
 Third column with `code` formatting.
+
+---
+
+### Customization
+
+Configure appearance in frontmatter:
+
+```yaml
+---
+background: Black
+foreground: Cyan1
+border: Magenta
+borderStyle: rounded
+---
+```
+
+---
+
+### Navigation Controls
+
+- Forward: Right, Down, Space, Enter, n, Page Down
+- Backward: Left, Up, Backspace, p, Page Up
+- Exit: Esc, Ctrl+C, or q
+- Help: Press ?
 
 ---
 
