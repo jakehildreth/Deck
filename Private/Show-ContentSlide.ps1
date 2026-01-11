@@ -251,15 +251,19 @@ function Show-ContentSlide {
                         $availableWidth = $windowWidth - 8  # Account for panel padding (4 left + 4 right)
                         $leftPadding = [math]::Max(0, [math]::Floor(($availableWidth - $maxLineLength) / 2))
                         
+                        # Convert markdown formatting to Spectre markup
+                        $convertedLines = $lines | ForEach-Object {
+                            ConvertTo-SpectreMarkup -Text $_
+                        }
+                        
                         # Rebuild content with padding
-                        $paddedLines = $lines | ForEach-Object {
+                        $paddedLines = $convertedLines | ForEach-Object {
                             (" " * $leftPadding) + $_
                         }
                         $paddedContent = $paddedLines -join "`n"
                         
-                        # Create text with left justification (padding is already in the string)
-                        $text = [Spectre.Console.Text]::new($paddedContent)
-                        $text.Justification = [Spectre.Console.Justify]::Left
+                        # Create markup text instead of plain text to support formatting
+                        $text = [Spectre.Console.Markup]::new($paddedContent)
                         $renderables.Add($text)
                     }
                 }

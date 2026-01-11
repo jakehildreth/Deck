@@ -202,7 +202,7 @@ function Show-Deck {
                             Write-Host (" " * $padding2) -NoNewline
                             Write-Host $line2 -ForegroundColor Gray
                             
-                            # Wait for ESC or backward navigation
+                            # Wait for ESC, q, or backward navigation
                             do {
                                 $exitKey = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
                                 $exitAction = Get-SlideNavigation -KeyInfo $exitKey
@@ -211,13 +211,16 @@ function Show-Deck {
                                     # Go back to last slide
                                     Write-Verbose "Returning to last slide from end screen"
                                     break
+                                } elseif ($exitAction -eq 'Exit') {
+                                    # Exit was pressed (Esc, q, or Ctrl+C)
+                                    Write-Verbose "User exited from end screen"
+                                    $shouldExit = $true
+                                    break
                                 }
-                            } while ($exitKey.VirtualKeyCode -ne 27)  # 27 = ESC
+                            } while ($true)
                             
-                            # If ESC was pressed, exit; if backward nav, continue loop
-                            if ($exitKey.VirtualKeyCode -eq 27) {
-                                Write-Verbose "User exited from end screen"
-                                $shouldExit = $true
+                            # Break out of main navigation loop if exit was requested
+                            if ($shouldExit) {
                                 break
                             }
                         }

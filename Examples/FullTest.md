@@ -126,6 +126,28 @@ borderStyle: rounded
 
 ---
 
+### Markdown Formatting
+
+Deck supports inline formatting:
+
+```markdown
+**Bold text** or __also bold__
+*Italic text* or _also italic_
+`Inline code` for technical terms
+~~Strikethrough~~ for corrections
+```
+
+Renders as:
+
+**Bold text** or __also bold__
+*Italic text* or _also italic_
+`Inline code` for technical terms
+~~Strikethrough~~ for corrections
+
+Mix formatting: **Bold with `code`** or *italic with ~~strike~~*
+
+---
+
 ## Thanks for Watching!
 
 ---
