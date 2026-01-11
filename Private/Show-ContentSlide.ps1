@@ -300,8 +300,6 @@ function Show-ContentSlide {
                             
                         } catch {
                             # Show alt text in a styled box on failure
-                            Write-Warning "Failed to load image: $($segment.Path) - $($_.Exception.Message)"
-                            
                             $altText = if ($segment.AltText) { $segment.AltText } else { "Image not available" }
                             $errorMarkup = [Spectre.Console.Markup]::new("[yellow]$([Spectre.Console.Markup]::Escape($altText))[/]")
                             
