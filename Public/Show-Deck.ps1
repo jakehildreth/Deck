@@ -112,25 +112,40 @@ function Show-Deck {
 
                 # Handle help key
                 if ($key.Character -eq '?') {
-                    Write-Host "`e[H" -NoNewline
+                    Clear-Host
                     
-                    # Fill screen with blank lines to clear previous content
+                    # Create help table with keys as cells
+                    $helpData = @(
+                        [PSCustomObject]@{ Forward = "Right"; Backward = "Left"; Exit = "Esc"; Help = "?" }
+                        [PSCustomObject]@{ Forward = "Down"; Backward = "Up"; Exit = "q"; Help = "" }
+                        [PSCustomObject]@{ Forward = "Space"; Backward = "Backspace"; Exit = "Ctrl+C"; Help = "" }
+                        [PSCustomObject]@{ Forward = "Enter"; Backward = "p"; Exit = ""; Help = "" }
+                        [PSCustomObject]@{ Forward = "n"; Backward = "PgUp"; Exit = ""; Help = "" }
+                        [PSCustomObject]@{ Forward = "PgDn"; Backward = ""; Exit = ""; Help = "" }
+                    )
+                    
+                    $properties = @(
+                        @{ Name = "Forward"; Expression = { $_.Forward }; Alignment = "Center" }
+                        @{ Name = "Backward"; Expression = { $_.Backward }; Alignment = "Center" }
+                        @{ Name = "Exit"; Expression = { $_.Exit }; Alignment = "Center" }
+                        @{ Name = "Help"; Expression = { $_.Help }; Alignment = "Center" }
+                    )
+                    
+                    # Calculate vertical padding for centering
                     $windowHeight = $Host.UI.RawUI.WindowSize.Height
-                    $windowWidth = $Host.UI.RawUI.WindowSize.Width
-                    for ($i = 0; $i -lt $windowHeight; $i++) {
-                        Write-Host (" " * $windowWidth)
-                    }
+                    $contentHeight = $helpData.Count + 4  # rows + border lines + title + prompt
+                    $topPadding = [math]::Max(0, [math]::Floor(($windowHeight - $contentHeight) / 2))
                     
-                    # Move cursor back to top and render help text
-                    Write-Host "`e[H" -NoNewline
-                    Write-Host "`n  Navigation Controls`n" -ForegroundColor Cyan
-                    Write-Host "  Forward:  " -ForegroundColor Gray -NoNewline
-                    Write-Host "Right, Down, Space, Enter, n, Page Down" -ForegroundColor White
-                    Write-Host "  Backward: " -ForegroundColor Gray -NoNewline
-                    Write-Host "Left, Up, Backspace, p, Page Up" -ForegroundColor White
-                    Write-Host "  Exit:     " -ForegroundColor Gray -NoNewline
-                    Write-Host "Esc, q, Ctrl+C" -ForegroundColor White
-                    Write-Host "`n  Press any key to return to presentation..." -ForegroundColor DarkGray
+                    # Add blank lines for vertical centering
+                    Write-Host ("`n" * $topPadding) -NoNewline
+                    
+                    # Create table and prompt as renderables
+                    $tableRenderable = $helpData | Format-SpectreTable -Property $properties -Border Rounded -Title "Navigation Controls" | Format-SpectreAligned -HorizontalAlignment Center
+                    $promptRenderable = "`n[dim]Press any key to return to Deck...[/]" | Format-SpectreAligned -HorizontalAlignment Center
+                    
+                    # Combine and output
+                    @($tableRenderable, $promptRenderable) | Format-SpectreRows | Out-SpectreHost
+                    
                     $null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
                     continue
                 }
