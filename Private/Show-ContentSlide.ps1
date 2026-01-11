@@ -69,31 +69,65 @@ function Show-ContentSlide {
                 $bodyContent = $Slide.Content.Trim()
             }
 
-            # Parse code blocks FIRST before any bullet filtering
+            # Parse code blocks and images FIRST before any bullet filtering
             $codeBlockPattern = '(?s)```(\w+)?\r?\n(.*?)\r?\n```'
+            $imagePattern = '!\[([^\]]*)\]\(([^)]+)\)(?:\{width=(\d+)\})?'
             $segments = [System.Collections.Generic.List[object]]::new()
             $lastIndex = 0
             $progressiveBulletCount = 0
             
             if ($bodyContent) {
+                # Collect all matches (code blocks and images) and sort by position
+                $allMatches = [System.Collections.Generic.List[object]]::new()
+                
                 foreach ($match in [regex]::Matches($bodyContent, $codeBlockPattern)) {
-                    # Add text before code block
-                    if ($match.Index -gt $lastIndex) {
-                        $textBefore = $bodyContent.Substring($lastIndex, $match.Index - $lastIndex).Trim()
+                    $allMatches.Add(@{
+                        Type = 'Code'
+                        Match = $match
+                        Index = $match.Index
+                        Length = $match.Length
+                        Language = $match.Groups[1].Value
+                        Content = $match.Groups[2].Value.Trim()
+                    })
+                }
+                
+                foreach ($match in [regex]::Matches($bodyContent, $imagePattern)) {
+                    $width = if ($match.Groups[3].Success) { [int]$match.Groups[3].Value } else { 0 }
+                    $allMatches.Add(@{
+                        Type = 'Image'
+                        Match = $match
+                        Index = $match.Index
+                        Length = $match.Length
+                        AltText = $match.Groups[1].Value
+                        Path = $match.Groups[2].Value
+                        Width = $width
+                    })
+                }
+                
+                # Sort by position in document
+                $allMatches = $allMatches | Sort-Object -Property Index
+                
+                # Build segments
+                foreach ($item in $allMatches) {
+                    # Add text before this item
+                    if ($item.Index -gt $lastIndex) {
+                        $textBefore = $bodyContent.Substring($lastIndex, $item.Index - $lastIndex).Trim()
                         if ($textBefore) {
                             $segments.Add(@{ Type = 'Text'; Content = $textBefore })
                         }
                     }
                     
-                    # Add code block (no processing needed)
-                    $language = $match.Groups[1].Value
-                    $code = $match.Groups[2].Value.Trim()
-                    $segments.Add(@{ Type = 'Code'; Language = $language; Content = $code })
+                    # Add the item (code or image)
+                    if ($item.Type -eq 'Code') {
+                        $segments.Add(@{ Type = 'Code'; Language = $item.Language; Content = $item.Content })
+                    } else {
+                        $segments.Add(@{ Type = 'Image'; AltText = $item.AltText; Path = $item.Path; Width = $item.Width })
+                    }
                     
-                    $lastIndex = $match.Index + $match.Length
+                    $lastIndex = $item.Index + $item.Length
                 }
                 
-                # Add remaining text after last code block
+                # Add remaining text after last item
                 if ($lastIndex -lt $bodyContent.Length) {
                     $textAfter = $bodyContent.Substring($lastIndex).Trim()
                     if ($textAfter) {
@@ -101,31 +135,32 @@ function Show-ContentSlide {
                     }
                 }
                 
-                # If no code blocks found, treat entire content as text
+                # If no code blocks or images found, treat entire content as text
                 if ($segments.Count -eq 0) {
                     $segments.Add(@{ Type = 'Text'; Content = $bodyContent })
                 }
                 
                 # Now filter bullets ONLY in text segments
+                # Use a single counter across all segments to track visible bullets
                 $filteredSegments = [System.Collections.Generic.List[object]]::new()
+                $globalVisibleBullets = 0
                 
                 foreach ($segment in $segments) {
-                    if ($segment.Type -eq 'Code') {
-                        # Code blocks pass through unchanged
+                    if ($segment.Type -eq 'Code' -or $segment.Type -eq 'Image') {
+                        # Code blocks and images pass through unchanged
                         $filteredSegments.Add($segment)
                     } else {
                         # Filter bullets in text segments
                         $lines = $segment.Content -split "`r?`n"
                         $filteredLines = [System.Collections.Generic.List[string]]::new()
-                        $visibleProgressiveBullets = 0
                         
                         foreach ($line in $lines) {
                             # Check if line is a progressive bullet (*)
                             if ($line -match '^\s*\*\s+') {
                                 $progressiveBulletCount++
-                                if ($visibleProgressiveBullets -lt $VisibleBullets) {
+                                if ($globalVisibleBullets -lt $VisibleBullets) {
                                     $filteredLines.Add($line)
-                                    $visibleProgressiveBullets++
+                                    $globalVisibleBullets++
                                 } else {
                                     # Add blank line placeholder for hidden progressive bullets
                                     $filteredLines.Add("")
@@ -210,7 +245,7 @@ function Show-ContentSlide {
                 $renderables.Add($figlet)
             }
 
-            # Add body content with code block support
+            # Add body content with code block and image support
             if ($bodyContent) {
                 # Render each segment (already parsed and filtered above)
                 foreach ($segment in $filteredSegments) {
@@ -236,6 +271,48 @@ function Show-ContentSlide {
                         $centeredCodePanel = Format-SpectreAligned -Data $codePanel -HorizontalAlignment Center
                         
                         $renderables.Add($centeredCodePanel)
+                    } elseif ($segment.Type -eq 'Image') {
+                        # Render image
+                        Write-Verbose "  Image: $($segment.Path)"
+                        
+                        try {
+                            # Resolve relative paths
+                            $imagePath = $segment.Path
+                            if (-not [System.IO.Path]::IsPathRooted($imagePath)) {
+                                $markdownDir = Split-Path -Parent $Slide.SourceFile
+                                $imagePath = Join-Path $markdownDir $imagePath
+                            }
+                            
+                            # Calculate max width (default to 80% of available width)
+                            $availableWidth = $windowWidth - 8  # Account for panel padding
+                            $maxWidth = if ($segment.Width -gt 0) {
+                                [math]::Min($segment.Width, $availableWidth)
+                            } else {
+                                [math]::Floor($availableWidth * 0.8)
+                            }
+                            
+                            # Load and render image
+                            $image = Get-SpectreImage -ImagePath $imagePath -MaxWidth $maxWidth
+                            
+                            # Center the image
+                            $centeredImage = Format-SpectreAligned -Data $image -HorizontalAlignment Center
+                            $renderables.Add($centeredImage)
+                            
+                        } catch {
+                            # Show alt text in a styled box on failure
+                            Write-Warning "Failed to load image: $($segment.Path) - $($_.Exception.Message)"
+                            
+                            $altText = if ($segment.AltText) { $segment.AltText } else { "Image not available" }
+                            $errorMarkup = [Spectre.Console.Markup]::new("[yellow]$([Spectre.Console.Markup]::Escape($altText))[/]")
+                            
+                            $errorPanel = [Spectre.Console.Panel]::new($errorMarkup)
+                            $errorPanel.Border = [Spectre.Console.BoxBorder]::Rounded
+                            $errorPanel.Header = [Spectre.Console.PanelHeader]::new("Image Failed")
+                            $errorPanel.Padding = [Spectre.Console.Padding]::new(2, 1, 2, 1)
+                            
+                            $centeredError = Format-SpectreAligned -Data $errorPanel -HorizontalAlignment Center
+                            $renderables.Add($centeredError)
+                        }
                     } else {
                         # Render text content with centering
                         $lines = $segment.Content -split "`r?`n"
@@ -277,11 +354,20 @@ function Show-ContentSlide {
             $contentSize = Get-SpectreRenderableSize -Renderable $rows -ContainerWidth $windowWidth
             $actualContentHeight = $contentSize.Height
             
-            # Calculate padding
+            # Calculate padding - be more conservative with bottom padding for images
+            # Sixel images may need extra space that isn't accounted for in the size calculation
             $borderHeight = 2
             $remainingSpace = $windowHeight - $actualContentHeight - $borderHeight
+            
+            # If slide contains images, reduce bottom padding slightly to prevent cutoff
+            $hasImages = $filteredSegments | Where-Object { $_.Type -eq 'Image' }
+            if ($hasImages) {
+                # Add buffer for image rendering
+                $remainingSpace = $remainingSpace - 1
+            }
+            
             $topPadding = [math]::Max(0, [math]::Ceiling($remainingSpace / 2.0))
-            $bottomPadding = [math]::Max(0, $remainingSpace - $topPadding)
+            $bottomPadding = [math]::Max(1, $remainingSpace - $topPadding)
             
             Write-Verbose "  Content height: $actualContentHeight, top padding: $topPadding, bottom padding: $bottomPadding"
             

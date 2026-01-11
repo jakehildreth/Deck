@@ -86,6 +86,11 @@ function Show-Deck {
 
                 $slide = $presentation.Slides[$currentSlide]
                 
+                # Add source file path to slide for image resolution
+                if (-not $slide.PSObject.Properties['SourceFile']) {
+                    Add-Member -InputObject $slide -NotePropertyName 'SourceFile' -NotePropertyValue $presentation.SourcePath -Force
+                }
+                
                 # Initialize visible bullets for this slide if not set
                 if (-not $visibleBullets.ContainsKey($currentSlide)) {
                     $visibleBullets[$currentSlide] = 0
