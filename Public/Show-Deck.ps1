@@ -129,7 +129,7 @@ function Show-Deck {
                     Write-Host "  Backward: " -ForegroundColor Gray -NoNewline
                     Write-Host "Left, Up, Backspace, p, Page Up" -ForegroundColor White
                     Write-Host "  Exit:     " -ForegroundColor Gray -NoNewline
-                    Write-Host "Esc, Ctrl+C" -ForegroundColor White
+                    Write-Host "Esc, q, Ctrl+C" -ForegroundColor White
                     Write-Host "`n  Press any key to return to presentation..." -ForegroundColor DarkGray
                     $null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
                     continue
@@ -158,7 +158,7 @@ function Show-Deck {
                             $windowWidth = $Host.UI.RawUI.WindowSize.Width
                             
                             $line1 = "End of Deck"
-                            $line2 = "Press ESC to Exit"
+                            $line2 = "Press ESC or q to Exit"
                             
                             # Calculate vertical position (center)
                             $verticalPadding = [math]::Floor($windowHeight / 2) - 1

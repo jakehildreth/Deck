@@ -134,6 +134,7 @@ borderStyle: rounded
 
 GitHub: github.com/jakehildreth/Deck
 
-PowerShell Gallery: Install-Module Deck
-
-Built with PwshSpectreConsole
+        Built with:
+        - PowerShell
+        - PwshSpectreConsole
+        - <3

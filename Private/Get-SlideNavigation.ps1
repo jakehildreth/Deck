@@ -39,8 +39,9 @@ function Get-SlideNavigation {
 
     # Exit
     if ($KeyInfo.VirtualKeyCode -eq 27 -or 
+        $KeyInfo.Character -eq 'q' -or
         ($KeyInfo.Character -eq 'c' -and $KeyInfo.ControlKeyState -match 'LeftCtrlPressed|RightCtrlPressed')) {
-        # 27=Escape, c with Ctrl
+        # 27=Escape, q, c with Ctrl
         return 'Exit'
     }
 
