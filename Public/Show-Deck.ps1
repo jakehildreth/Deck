@@ -100,6 +100,10 @@ function Show-Deck {
                     # Section slide: Only has ## heading, no other content
                     Write-Verbose "Rendering section slide $($currentSlide + 1)/$totalSlides"
                     Show-SectionSlide -Slide $slide -Settings $presentation.Settings
+                } elseif ($slide.Content -match '\|\|\|') {
+                    # Multi-column slide: Contains ||| delimiter
+                    Write-Verbose "Rendering multi-column slide $($currentSlide + 1)/$totalSlides"
+                    Show-MultiColumnSlide -Slide $slide -Settings $presentation.Settings
                 } else {
                     # Content slide: May have ### heading or just content
                     Write-Verbose "Rendering content slide $($currentSlide + 1)/$totalSlides with $($visibleBullets[$currentSlide]) bullets"

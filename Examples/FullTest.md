@@ -148,6 +148,24 @@ Mix formatting: **Bold with `code`** or *italic with ~~strike~~*
 
 ---
 
+### Multi-Column Layouts
+
+Split content into columns using three pipes.
+
+|||
+
+First column with **bold** text.
+
+|||
+
+Second column with *italic* text.
+
+|||
+
+Third column with `code` formatting.
+
+---
+
 ## Thanks for Watching!
 
 ---
