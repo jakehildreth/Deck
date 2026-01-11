@@ -104,13 +104,11 @@ function Show-Deck {
                     # Title slide: Only has # heading, no other content
                     Write-Verbose "Rendering title slide $($currentSlide + 1)/$totalSlides"
                     Show-TitleSlide -Slide $slide -Settings $presentation.Settings -IsFirstSlide:($currentSlide -eq 0)
-                }
-                elseif ($slide.Content -match '^\s*##\s+.+$' -and $slide.Content -notmatch '\n[^#]') {
+                } elseif ($slide.Content -match '^\s*##\s+.+$' -and $slide.Content -notmatch '\n[^#]') {
                     # Section slide: Only has ## heading, no other content
                     Write-Verbose "Rendering section slide $($currentSlide + 1)/$totalSlides"
                     Show-SectionSlide -Slide $slide -Settings $presentation.Settings
-                }
-                else {
+                } else {
                     # Content slide: May have ### heading or just content
                     Write-Verbose "Rendering content slide $($currentSlide + 1)/$totalSlides with $($visibleBullets[$currentSlide]) bullets"
                     Show-ContentSlide -Slide $slide -Settings $presentation.Settings -VisibleBullets $visibleBullets[$currentSlide]
@@ -154,14 +152,12 @@ function Show-Deck {
                             # Reveal next bullet
                             $visibleBullets[$currentSlide]++
                             Write-Verbose "Revealed bullet $($visibleBullets[$currentSlide])/$($slide.TotalProgressiveBullets)"
-                        }
-                        elseif ($currentSlide -lt $totalSlides - 1) {
+                        } elseif ($currentSlide -lt $totalSlides - 1) {
                             # Move to next slide and reset bullets to 0
                             $currentSlide++
                             $visibleBullets[$currentSlide] = 0
                             Write-Verbose "Advanced to slide $($currentSlide + 1)"
-                        }
-                        else {
+                        } else {
                             # On last slide, trying to go forward shows end screen
                             Write-Host "`e[H" -NoNewline
                             
@@ -226,15 +222,13 @@ function Show-Deck {
                             # Hide last bullet
                             $visibleBullets[$currentSlide]--
                             Write-Verbose "Hid bullet, now showing $($visibleBullets[$currentSlide])/$($slide.TotalProgressiveBullets)"
-                        }
-                        elseif ($currentSlide -gt 0) {
+                        } elseif ($currentSlide -gt 0) {
                             # Move to previous slide and show all bullets
                             $currentSlide--
                             $prevSlide = $presentation.Slides[$currentSlide]
                             if ($prevSlide.PSObject.Properties['TotalProgressiveBullets']) {
                                 $visibleBullets[$currentSlide] = $prevSlide.TotalProgressiveBullets
-                            }
-                            else {
+                            } else {
                                 $visibleBullets[$currentSlide] = 0
                             }
                             Write-Verbose "Moved back to slide $($currentSlide + 1)"
@@ -280,8 +274,7 @@ function Show-Deck {
                 # Show cursor again
                 Write-Host "`e[?25h" -NoNewline  # Show cursor
             }
-        }
-        catch {
+        } catch {
             $errorRecord = [System.Management.Automation.ErrorRecord]::new(
                 $_.Exception,
                 'PresentationFailed',

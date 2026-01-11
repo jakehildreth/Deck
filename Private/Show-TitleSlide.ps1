@@ -41,8 +41,7 @@ function Show-TitleSlide {
             if ($Slide.Content -match '^#\s+(.+)$') {
                 $titleText = $Matches[1].Trim()
                 Write-Verbose "  Title: $titleText"
-            }
-            else {
+            } else {
                 throw "Title slide does not contain a valid # heading"
             }
 
@@ -56,8 +55,7 @@ function Show-TitleSlide {
                 Write-Verbose "  Figlet color: $colorName"
                 try {
                     $figletColor = [Spectre.Console.Color]::$colorName
-                }
-                catch {
+                } catch {
                     Write-Warning "Invalid color '$($Settings.foreground)', using default"
                 }
             }
@@ -68,8 +66,7 @@ function Show-TitleSlide {
                 Write-Verbose "  Border color: $borderColorName"
                 try {
                     $borderColor = [Spectre.Console.Color]::$borderColorName
-                }
-                catch {
+                } catch {
                     Write-Warning "Invalid border color '$($Settings.border)', using default"
                 }
             }
@@ -134,8 +131,7 @@ function Show-TitleSlide {
             
             # Render panel
             Out-SpectreHost $panel
-        }
-        catch {
+        } catch {
             $errorRecord = [System.Management.Automation.ErrorRecord]::new(
                 $_.Exception,
                 'TitleSlideRenderFailed',

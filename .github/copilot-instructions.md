@@ -2,6 +2,15 @@
 
 This document defines the design specifications for the Deck PowerShell module, which converts Markdown files into terminal-based presentations using PwshSpectreConsole.
 
+## Code Style
+
+### OTBS (One True Brace Style)
+All PowerShell code in this project must follow OTBS:
+- Opening braces on same line as statement: `if ($condition) {`, `function Test-Thing {`
+- Closing braces on new line
+- `else`, `elseif`, `catch`, and `finally` keywords on same line as closing brace: `} else {`, `} elseif {`, `} catch {`, `} finally {`
+- Never put these keywords on their own line after a closing brace
+
 ## Module Overview
 
 ### Purpose

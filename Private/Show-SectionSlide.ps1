@@ -38,8 +38,7 @@ function Show-SectionSlide {
             if ($Slide.Content -match '^##\s+(.+)$') {
                 $sectionText = $Matches[1].Trim()
                 Write-Verbose "  Section: $sectionText"
-            }
-            else {
+            } else {
                 throw "Section slide does not contain a valid ## heading"
             }
 
@@ -53,8 +52,7 @@ function Show-SectionSlide {
                 Write-Verbose "  Figlet color: $colorName"
                 try {
                     $figletColor = [Spectre.Console.Color]::$colorName
-                }
-                catch {
+                } catch {
                     Write-Warning "Invalid color '$($Settings.foreground)', using default"
                 }
             }
@@ -65,8 +63,7 @@ function Show-SectionSlide {
                 Write-Verbose "  Border color: $borderColorName"
                 try {
                     $borderColor = [Spectre.Console.Color]::$borderColorName
-                }
-                catch {
+                } catch {
                     Write-Warning "Invalid border color '$($Settings.border)', using default"
                 }
             }
@@ -132,8 +129,7 @@ function Show-SectionSlide {
             
             # Render panel
             Out-SpectreHost $panel
-        }
-        catch {
+        } catch {
             $errorRecord = [System.Management.Automation.ErrorRecord]::new(
                 $_.Exception,
                 'SectionSlideRenderFailed',

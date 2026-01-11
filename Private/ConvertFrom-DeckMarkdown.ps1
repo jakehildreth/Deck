@@ -73,8 +73,7 @@ function ConvertFrom-DeckMarkdown {
                         # Convert boolean strings
                         if ($value -eq 'true') {
                             $value = $true
-                        }
-                        elseif ($value -eq 'false') {
+                        } elseif ($value -eq 'false') {
                             $value = $false
                         }
                         
@@ -82,14 +81,12 @@ function ConvertFrom-DeckMarkdown {
                         if ($settings.ContainsKey($key)) {
                             $settings[$key] = $value
                             Write-Verbose "  Setting: $key = $value"
-                        }
-                        else {
+                        } else {
                             Write-Warning "Unknown setting in frontmatter: $key"
                         }
                     }
                 }
-            }
-            else {
+            } else {
                 Write-Verbose "No YAML frontmatter found, using defaults"
             }
             
@@ -169,8 +166,7 @@ function ConvertFrom-DeckMarkdown {
                 Slides     = $slides
                 SourcePath = $Path
             }
-        }
-        catch {
+        } catch {
             $errorRecord = [System.Management.Automation.ErrorRecord]::new(
                 $_.Exception,
                 'MarkdownParsingFailed',

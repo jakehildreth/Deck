@@ -64,8 +64,7 @@ function Show-ContentSlide {
                 # Extract content after header
                 $bodyContent = $Slide.Content -replace '^###\s+.+?(\r?\n|$)', ''
                 $bodyContent = $bodyContent.Trim()
-            }
-            else {
+            } else {
                 # No header, use all content
                 $bodyContent = $Slide.Content.Trim()
             }
@@ -114,8 +113,7 @@ function Show-ContentSlide {
                     if ($segment.Type -eq 'Code') {
                         # Code blocks pass through unchanged
                         $filteredSegments.Add($segment)
-                    }
-                    else {
+                    } else {
                         # Filter bullets in text segments
                         $lines = $segment.Content -split "`r?`n"
                         $filteredLines = [System.Collections.Generic.List[string]]::new()
@@ -128,14 +126,13 @@ function Show-ContentSlide {
                                 if ($visibleProgressiveBullets -lt $VisibleBullets) {
                                     $filteredLines.Add($line)
                                     $visibleProgressiveBullets++
-                                }
-                                else {
+                                } else {
                                     # Add blank line placeholder for hidden progressive bullets
                                     $filteredLines.Add("")
                                 }
                             }
                             # All other lines (including - bullets) are always shown
-                            else {
+                            } else {
                                 $filteredLines.Add($line)
                             }
                         }
@@ -171,8 +168,7 @@ function Show-ContentSlide {
                 Write-Verbose "  Border color: $borderColorName"
                 try {
                     $borderColor = [Spectre.Console.Color]::$borderColorName
-                }
-                catch {
+                } catch {
                     Write-Warning "Invalid border color '$($Settings.border)', using default"
                 }
             }
@@ -195,8 +191,7 @@ function Show-ContentSlide {
                     Write-Verbose "  Header color: $colorName"
                     try {
                         $figletColor = [Spectre.Console.Color]::$colorName
-                    }
-                    catch {
+                    } catch {
                         Write-Warning "Invalid color '$($Settings.foreground)', using default"
                     }
                 }
@@ -206,8 +201,7 @@ function Show-ContentSlide {
                 if (Test-Path $miniFontPath) {
                     $font = [Spectre.Console.FigletFont]::Load($miniFontPath)
                     $figlet = [Spectre.Console.FigletText]::new($font, $headerText)
-                }
-                else {
+                } else {
                     $figlet = [Spectre.Console.FigletText]::new($headerText)
                 }
                 $figlet.Justification = [Spectre.Console.Justify]::Center
@@ -243,16 +237,14 @@ function Show-ContentSlide {
                         $centeredCodePanel = Format-SpectreAligned -Data $codePanel -HorizontalAlignment Center
                         
                         $renderables.Add($centeredCodePanel)
-                    }
-                    else {
+                    } else {
                         # Render text content with centering
                         $lines = $segment.Content -split "`r?`n"
                         
                         # Use stored max line length for consistent alignment during bullet reveal
                         if ($Slide.PSObject.Properties['MaxLineLength']) {
                             $maxLineLength = $Slide.MaxLineLength
-                        }
-                        else {
+                        } else {
                             $maxLineLength = ($lines | Measure-Object -Property Length -Maximum).Maximum
                         }
                         
@@ -307,8 +299,7 @@ function Show-ContentSlide {
             
             # Render panel
             Out-SpectreHost $panel
-        }
-        catch {
+        } catch {
             $errorRecord = [System.Management.Automation.ErrorRecord]::new(
                 $_.Exception,
                 'ContentSlideRenderFailed',

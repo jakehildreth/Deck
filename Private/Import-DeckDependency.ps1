@@ -30,8 +30,7 @@ function Import-DeckDependency {
             # Try to import the module
             Import-Module PwshSpectreConsole -ErrorAction Stop
             Write-Verbose 'PwshSpectreConsole loaded successfully'
-        }
-        catch {
+        } catch {
             Write-Warning 'PwshSpectreConsole module not found. Attempting to install...'
             
             try {
@@ -39,8 +38,7 @@ function Import-DeckDependency {
                 Install-PSResource -Name PwshSpectreConsole -Repository PSGallery -TrustRepository -ErrorAction Stop
                 Import-Module PwshSpectreConsole -ErrorAction Stop
                 Write-Verbose 'PwshSpectreConsole installed and loaded successfully'
-            }
-            catch {
+            } catch {
                 # Installation failed - show sad face and exit
                 Show-SadFace
                 
