@@ -55,17 +55,14 @@ function Show-Deck {
     begin {
         Write-Verbose "Starting presentation from: $Path"
         
-        # Ensure PwshSpectreConsole is loaded
         Import-DeckDependency
     }
 
     process {
         try {
-            # Parse the markdown file
             $presentation = ConvertFrom-DeckMarkdown -Path $Path
             Write-Verbose "Loaded $($presentation.Slides.Count) slides"
 
-            # Apply parameter overrides to settings
             if ($PSBoundParameters.ContainsKey('Background')) {
                 $presentation.Settings.background = $Background
             }
@@ -76,20 +73,15 @@ function Show-Deck {
                 $presentation.Settings.border = $Border
             }
 
-            # Hide cursor during presentation using ANSI escape codes
-            Write-Host "`e[?25l" -NoNewline  # Hide cursor
+            Write-Host "`e[?25l" -NoNewline
 
             try {
-                # Full navigation loop (Phase 6)
                 $currentSlide = 0
                 $totalSlides = $presentation.Slides.Count
                 $shouldExit = $false
-                
-                # Track visible bullets per slide
                 $visibleBullets = @{}
 
                 while ($true) {
-                    # Move cursor to top-left and redraw (no clear to reduce flicker)
                     Write-Host "`e[H" -NoNewline
 
                 $slide = $presentation.Slides[$currentSlide]

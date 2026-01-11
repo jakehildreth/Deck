@@ -130,9 +130,8 @@ function Show-ContentSlide {
                                     # Add blank line placeholder for hidden progressive bullets
                                     $filteredLines.Add("")
                                 }
-                            }
-                            # All other lines (including - bullets) are always shown
                             } else {
+                                # All other lines (including - bullets) are always shown
                                 $filteredLines.Add($line)
                             }
                         }
@@ -221,7 +220,7 @@ function Show-ContentSlide {
                         
                         # Create markup text for the code
                         $codeMarkup = [Spectre.Console.Markup]::Escape($segment.Content)
-                        $codeText = [Spectre.Console.Markup]::new("[grey on grey11]$codeMarkup[/]")
+                        $codeText = [Spectre.Console.Markup]::new("$codeMarkup")
                         
                         # Put code in a panel
                         $codePanel = [Spectre.Console.Panel]::new($codeText)
