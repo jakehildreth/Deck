@@ -9,7 +9,8 @@ function Show-Deck {
         space, or enter.
 
     .PARAMETER Path
-        Path to the Markdown file containing the presentation.
+        Path or URL to the Markdown file containing the presentation.
+        Supports both local file paths and web URLs (http/https).
 
     .PARAMETER Background
         Override the background color from the Markdown frontmatter.
@@ -29,6 +30,11 @@ function Show-Deck {
         Displays the presentation from the specified Markdown file.
 
     .EXAMPLE
+        Show-Deck -Path https://example.com/presentation.md
+
+        Displays the presentation from a web URL.
+
+    .EXAMPLE
         Show-Deck -Path ./presentation.md -Foreground Cyan1 -Background Black
 
         Displays the presentation with custom colors.
@@ -39,7 +45,15 @@ function Show-Deck {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true, Position = 0)]
-        [ValidateScript({ Test-Path $_ -PathType Leaf })]
+        [ValidateScript({ 
+            if ($_ -match '^https?://') {
+                # Web URL - just validate format
+                return $true
+            } else {
+                # Local path - validate file exists
+                Test-Path $_ -PathType Leaf
+            }
+        })]
         [string]$Path,
 
         [Parameter()]
@@ -63,7 +77,31 @@ function Show-Deck {
 
     process {
         try {
-            $presentation = ConvertFrom-DeckMarkdown -Path $Path
+            # Handle web URLs by downloading to temp file
+            $pathToLoad = $Path
+            $tempFile = $null
+            
+            if ($Path -match '^https?://') {
+                Write-Verbose "Downloading markdown from web URL: $Path"
+                try {
+                    $tempFile = [System.IO.Path]::GetTempFileName()
+                    $tempFile = [System.IO.Path]::ChangeExtension($tempFile, '.md')
+                    
+                    $webClient = [System.Net.WebClient]::new()
+                    $webClient.DownloadFile($Path, $tempFile)
+                    $webClient.Dispose()
+                    
+                    $pathToLoad = $tempFile
+                    Write-Verbose "Downloaded to temporary file: $tempFile"
+                } catch {
+                    if ($tempFile -and (Test-Path $tempFile)) {
+                        Remove-Item $tempFile -Force -ErrorAction SilentlyContinue
+                    }
+                    throw "Failed to download markdown from URL: $_"
+                }
+            }
+            
+            $presentation = ConvertFrom-DeckMarkdown -Path $pathToLoad
             Write-Verbose "Loaded $($presentation.Slides.Count) slides"
 
             if ($PSBoundParameters.ContainsKey('Background')) {
@@ -520,6 +558,12 @@ function Show-Deck {
             )
             $PSCmdlet.ThrowTerminatingError($errorRecord)
         } finally {
+            # Clean up temp file if we downloaded from web
+            if ($tempFile -and (Test-Path $tempFile)) {
+                Write-Verbose "Cleaning up temporary file: $tempFile"
+                Remove-Item $tempFile -Force -ErrorAction SilentlyContinue
+            }
+            
             # Show cursor again
             Write-Host "`e[?25h" -NoNewline  # Show cursor
         }

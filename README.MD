@@ -48,6 +48,12 @@ Run the presentation:
 Show-Deck -Path ./presentation.md
 ```
 
+Or load directly from a web URL:
+
+```powershell
+Show-Deck -Path https://raw.githubusercontent.com/jakehildreth/Deck/main/Examples/ExampleDeck.md
+```
+
 Validate content before presenting:
 
 ```powershell
