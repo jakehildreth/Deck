@@ -45,9 +45,6 @@ function Show-TitleSlide {
                 throw "Title slide does not contain a valid # heading"
             }
 
-            # Clear the screen
-            Clear-Host
-
             # Convert colors to Spectre.Console.Color
             $figletColor = $null
             if ($Settings.foreground) {

@@ -86,6 +86,14 @@ Text content on the left.
 
 Images are auto-detected. Use relative or absolute paths. Optional `{width=N}` sets max width.
 
+Web images are supported:
+
+```markdown
+![Logo](https://example.com/logo.png)
+### About Our Brand
+Content appears here
+```
+
 ### Bullet Points
 
 * Progressive bullets using `*` (reveal one at a time)  

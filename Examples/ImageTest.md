@@ -23,7 +23,7 @@ This is some text content on the left side of the slide.
 
 Some additional text after the bullets.
 
-![PowerShell Logo](https://raw.githubusercontent.com/PowerShell/PowerShell/master/assets/ps_black_128.svg)
+![PowerShell Logo](https://raw.githubusercontent.com/PowerShell/PowerShell/master/assets/Powershell_256.png)
 
 ---
 
@@ -36,7 +36,7 @@ Different text on the left, same image concept.
 
 More content here in a paragraph format that explains something important.
 
-![Spectre Logo](https://spectreconsole.net/assets/images/spectreconsole.png){width=80}
+![GitHub Logo](https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png){width=80}
 
 ---
 
@@ -44,7 +44,7 @@ More content here in a paragraph format that explains something important.
 
 Just a title.
 
-![Test](https://spectreconsole.net/assets/images/spectreconsole.png)
+![Wikipedia Logo](https://upload.wikimedia.org/wikipedia/commons/thumb/8/80/Wikipedia-logo-v2.svg/200px-Wikipedia-logo-v2.svg.png)
 
 ---
 

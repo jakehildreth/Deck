@@ -35,8 +35,6 @@ function Show-MultiColumnSlide {
 
     process {
         try {
-            Clear-Host
-
             # Get terminal dimensions
             $windowWidth = $Host.UI.RawUI.WindowSize.Width
             $windowHeight = $Host.UI.RawUI.WindowSize.Height - 1
@@ -121,11 +119,82 @@ function Show-MultiColumnSlide {
             
             foreach ($columnContent in $columns) {
                 if ($columnContent) {
-                    $columnLines = $columnContent -split "`r?`n" | ForEach-Object {
-                        ConvertTo-SpectreMarkup -Text $_
+                    # Parse code blocks in this column
+                    $codeBlockPattern = '(?s)```(\w+)?\r?\n(.*?)\r?\n```'
+                    $columnSegments = [System.Collections.Generic.List[object]]::new()
+                    $lastIndex = 0
+                    
+                    foreach ($match in [regex]::Matches($columnContent, $codeBlockPattern)) {
+                        # Add text before code block
+                        if ($match.Index -gt $lastIndex) {
+                            $textBefore = $columnContent.Substring($lastIndex, $match.Index - $lastIndex).Trim()
+                            if ($textBefore) {
+                                $columnSegments.Add(@{ Type = 'Text'; Content = $textBefore })
+                            }
+                        }
+                        
+                        # Add code block
+                        $columnSegments.Add(@{
+                            Type = 'Code'
+                            Language = $match.Groups[1].Value
+                            Content = $match.Groups[2].Value.Trim()
+                        })
+                        
+                        $lastIndex = $match.Index + $match.Length
                     }
-                    $columnMarkup = [Spectre.Console.Markup]::new(($columnLines -join "`n"))
-                    $columnRenderables.Add($columnMarkup)
+                    
+                    # Add remaining text after last code block
+                    if ($lastIndex -lt $columnContent.Length) {
+                        $textAfter = $columnContent.Substring($lastIndex).Trim()
+                        if ($textAfter) {
+                            $columnSegments.Add(@{ Type = 'Text'; Content = $textAfter })
+                        }
+                    }
+                    
+                    # If no code blocks found, treat entire content as text
+                    if ($columnSegments.Count -eq 0) {
+                        $columnSegments.Add(@{ Type = 'Text'; Content = $columnContent })
+                    }
+                    
+                    # Build renderables for this column
+                    $columnParts = [System.Collections.Generic.List[object]]::new()
+                    
+                    foreach ($segment in $columnSegments) {
+                        if ($segment.Type -eq 'Code') {
+                            # Render code block in a panel
+                            $codeMarkup = [Spectre.Console.Markup]::Escape($segment.Content)
+                            $codeText = [Spectre.Console.Markup]::new($codeMarkup)
+                            
+                            $codePanel = [Spectre.Console.Panel]::new($codeText)
+                            $codePanel.Border = [Spectre.Console.BoxBorder]::Rounded
+                            $codePanel.Padding = [Spectre.Console.Padding]::new(2, 1, 2, 1)
+                            
+                            if ($segment.Language) {
+                                $codePanel.Header = [Spectre.Console.PanelHeader]::new($segment.Language)
+                            }
+                            
+                            # Center the entire code panel
+                            $centeredCodePanel = Format-SpectreAligned -Data $codePanel -HorizontalAlignment Center
+                            
+                            $columnParts.Add($centeredCodePanel)
+                        } else {
+                            # Render text
+                            $textLines = $segment.Content -split "`r?`n" | ForEach-Object {
+                                ConvertTo-SpectreMarkup -Text $_
+                            }
+                            $textMarkup = [Spectre.Console.Markup]::new(($textLines -join "`n"))
+                            $columnParts.Add($textMarkup)
+                        }
+                    }
+                    
+                    # Combine column parts into Rows if multiple, otherwise use single part
+                    if ($columnParts.Count -gt 1) {
+                        $columnRenderable = [Spectre.Console.Rows]::new([object[]]$columnParts.ToArray())
+                    } else {
+                        $columnRenderable = $columnParts[0]
+                    }
+                    
+                    $columnRenderables.Add($columnRenderable)
                 } else {
                     # Empty column
                     $columnRenderables.Add([Spectre.Console.Text]::new(""))

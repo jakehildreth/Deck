@@ -28,6 +28,10 @@ function ConvertTo-SpectreMarkup {
     process {
         $result = $Text
 
+        # Escape markdown image syntax before other conversions to prevent Spectre from parsing it
+        # ![alt](url) or ![alt](url){width=N} -> escaped brackets
+        $result = $result -replace '!\[([^\]]*)\]\(([^)]+)\)(\{width=\d+\})?', '![[${1}]]($2)$3'
+
         # Convert code blocks first (backticks) to avoid conflicts with other patterns
         # Inline code: `code` -> [grey on grey15]code[/]
         $result = $result -replace '`([^`]+)`', '[grey on grey15]$1[/]'

@@ -130,7 +130,8 @@ function Show-Deck {
                         # Multi-column slide - basic check (harder to validate precisely)
                         $columns = $slide.Content -split '\|\|\|'
                         foreach ($col in $columns) {
-                            $testText = [Spectre.Console.Markup]::new($col.Trim())
+                            $convertedLines = ($col.Trim() -split "`r?`n") | ForEach-Object { ConvertTo-SpectreMarkup -Text $_ }
+                            $testText = [Spectre.Console.Markup]::new(($convertedLines -join "`n"))
                             $testSize = Get-SpectreRenderableSize -Renderable $testText -ContainerWidth ([math]::Floor($windowWidth / $columns.Count))
                             if ($testSize.Height -gt $windowHeight - 4) {
                                 $validationErrors.Add("Slide #${slideNum} (Multi-column): Column content exceeds viewport height ($windowHeight)")
@@ -143,15 +144,30 @@ function Show-Deck {
                         $imageMatch = [regex]::Match($slide.Content, $imagePattern)
                         $imagePath = $imageMatch.Groups[2].Value
                         
-                        # Check if image file exists
-                        $imagePathResolved = $imagePath
-                        if (-not [System.IO.Path]::IsPathRooted($imagePath)) {
-                            $markdownDir = Split-Path -Parent $Path
-                            $imagePathResolved = Join-Path $markdownDir $imagePath
+                        # Check if the image is inside a code fence (skip validation for example code)
+                        $codeBlockPattern = '(?s)```(\w+)?\r?\n(.*?)\r?\n```'
+                        $isInCodeBlock = $false
+                        foreach ($codeMatch in [regex]::Matches($slide.Content, $codeBlockPattern)) {
+                            if ($imageMatch.Index -ge $codeMatch.Index -and $imageMatch.Index -lt ($codeMatch.Index + $codeMatch.Length)) {
+                                $isInCodeBlock = $true
+                                break
+                            }
                         }
                         
-                        if (-not (Test-Path $imagePathResolved)) {
-                            $validationErrors.Add("Slide #${slideNum} (Image): Image file not found: $imagePath")
+                        # Check if image file exists (skip for web URLs and code examples)
+                        if (-not $isInCodeBlock) {
+                            $isWebUrl = $imagePath -match '^https?://'
+                            if (-not $isWebUrl) {
+                                $imagePathResolved = $imagePath
+                                if (-not [System.IO.Path]::IsPathRooted($imagePath)) {
+                                    $markdownDir = Split-Path -Parent $Path
+                                    $imagePathResolved = Join-Path $markdownDir $imagePath
+                                }
+                                
+                                if (-not (Test-Path $imagePathResolved)) {
+                                    $validationErrors.Add("Slide #${slideNum} (Image): Image file not found: $imagePath")
+                                }
+                            }
                         }
                         
                         $textContent = $slide.Content.Remove($imageMatch.Index, $imageMatch.Length).Trim()
@@ -177,7 +193,8 @@ function Show-Deck {
                             }
                             
                             if ($bodyContent) {
-                                $testMarkup = [Spectre.Console.Markup]::new($bodyContent)
+                                $convertedLines = ($bodyContent -split "`r?`n") | ForEach-Object { ConvertTo-SpectreMarkup -Text $_ }
+                                $testMarkup = [Spectre.Console.Markup]::new(($convertedLines -join "`n"))
                                 $testRenderables.Add($testMarkup)
                             }
                             
@@ -214,7 +231,8 @@ function Show-Deck {
                         }
                         
                         if ($bodyContent.Trim()) {
-                            $testMarkup = [Spectre.Console.Markup]::new($bodyContent.Trim())
+                            $convertedLines = ($bodyContent.Trim() -split "`r?`n") | ForEach-Object { ConvertTo-SpectreMarkup -Text $_ }
+                            $testMarkup = [Spectre.Console.Markup]::new(($convertedLines -join "`n"))
                             $testRenderables.Add($testMarkup)
                         }
                         
@@ -255,8 +273,15 @@ function Show-Deck {
                 $totalSlides = $presentation.Slides.Count
                 $shouldExit = $false
                 $visibleBullets = @{}
+                $windowWidth = $Host.UI.RawUI.WindowSize.Width
+                $windowHeight = $Host.UI.RawUI.WindowSize.Height - 1
 
                 while ($true) {
+                    # Clear screen by moving to top-left and drawing blank lines
+                    Write-Host "`e[H" -NoNewline
+                    for ($i = 0; $i -lt $windowHeight; $i++) {
+                        Write-Host (' ' * $windowWidth)
+                    }
                     Write-Host "`e[H" -NoNewline
 
                 $slide = $presentation.Slides[$currentSlide]
@@ -286,8 +311,27 @@ function Show-Deck {
                     Show-MultiColumnSlide -Slide $slide -Settings $presentation.Settings
                 } elseif ($slide.Content -match '!\[[^\]]*\]\([^)]+\)' -and ($slide.Content -replace '!\[[^\]]*\]\([^)]+\)(?:\{width=\d+\})?', '').Trim().Length -gt 0) {
                     # Image slide: Contains an image AND has text content besides the image
-                    Write-Verbose "Rendering image slide $($currentSlide + 1)/$totalSlides with $($visibleBullets[$currentSlide]) bullets"
-                    Show-ImageSlide -Slide $slide -Settings $presentation.Settings -VisibleBullets $visibleBullets[$currentSlide]
+                    # But first check if the image is inside a code block (skip if it's example code)
+                    $imagePattern = '!\[([^\]]*)\]\(([^)]+)\)(?:\{width=(\d+)\})?'
+                    $imageMatch = [regex]::Match($slide.Content, $imagePattern)
+                    $codeBlockPattern = '(?s)```(\w+)?\r?\n(.*?)\r?\n```'
+                    $isInCodeBlock = $false
+                    foreach ($codeMatch in [regex]::Matches($slide.Content, $codeBlockPattern)) {
+                        if ($imageMatch.Index -ge $codeMatch.Index -and $imageMatch.Index -lt ($codeMatch.Index + $codeMatch.Length)) {
+                            $isInCodeBlock = $true
+                            break
+                        }
+                    }
+                    
+                    if ($isInCodeBlock) {
+                        # Treat as content slide since image is just example code
+                        Write-Verbose "Rendering content slide $($currentSlide + 1)/$totalSlides with $($visibleBullets[$currentSlide]) bullets"
+                        Show-ContentSlide -Slide $slide -Settings $presentation.Settings -VisibleBullets $visibleBullets[$currentSlide]
+                    } else {
+                        # Real image slide
+                        Write-Verbose "Rendering image slide $($currentSlide + 1)/$totalSlides with $($visibleBullets[$currentSlide]) bullets"
+                        Show-ImageSlide -Slide $slide -Settings $presentation.Settings -VisibleBullets $visibleBullets[$currentSlide]
+                    }
                 } else {
                     # Content slide: May have ### heading or just content
                     Write-Verbose "Rendering content slide $($currentSlide + 1)/$totalSlides with $($visibleBullets[$currentSlide]) bullets"

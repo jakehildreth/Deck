@@ -81,20 +81,11 @@ That's it!
 
 ### Image Slides
 
-Two-panel layout with text content and image side-by-side:
-
-```markdown
-### Slide Title
-
-Text content on the left panel.
-
-* Progressive bullets work here too
-* Second bullet
-
-![Alt Text](path/to/image.png)
-```
+Two-panel layout with text content and image side-by-side.
 
 Images auto-size to fit. Use `{width=N}` to set max width.
+
+![PowerShell Logo](https://raw.githubusercontent.com/PowerShell/PowerShell/master/assets/Powershell_256.png)
 
 ---
 
@@ -125,7 +116,7 @@ Great for lists and references.
 ### Markdown Formatting
 
 Deck supports inline formatting:
-
+  
 ```markdown
 **Bold text** or __also bold__
 *Italic text* or _also italic_
@@ -133,14 +124,17 @@ Deck supports inline formatting:
 ~~Strikethrough~~ for corrections
 ```
 
-Renders as:
+|||
 
+
+  
+Renders as:
+  
+  
 **Bold text** or __also bold__
 *Italic text* or _also italic_
 `Inline code` for technical terms
 ~~Strikethrough~~ for corrections
-
-Mix formatting: **Bold with `code`** or *italic with ~~strike~~*
 
 ---
 

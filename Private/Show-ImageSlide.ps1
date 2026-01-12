@@ -135,28 +135,96 @@ function Show-ImageSlide {
                 $leftRenderables.Add($figlet)
             }
 
-            # Process body content with bullet filtering
+            # Process body content with code blocks and bullet filtering
             if ($bodyContent) {
-                # Filter bullets
-                $lines = $bodyContent -split "`r?`n"
-                $filteredLines = [System.Collections.Generic.List[string]]::new()
+                # Parse code blocks first
+                $codeBlockPattern = '(?s)```(\w+)?\r?\n(.*?)\r?\n```'
+                $segments = [System.Collections.Generic.List[object]]::new()
+                $lastIndex = 0
+                
+                foreach ($match in [regex]::Matches($bodyContent, $codeBlockPattern)) {
+                    # Add text before code block
+                    if ($match.Index -gt $lastIndex) {
+                        $textBefore = $bodyContent.Substring($lastIndex, $match.Index - $lastIndex).Trim()
+                        if ($textBefore) {
+                            $segments.Add(@{ Type = 'Text'; Content = $textBefore })
+                        }
+                    }
+                    
+                    # Add code block
+                    $segments.Add(@{
+                        Type = 'Code'
+                        Language = $match.Groups[1].Value
+                        Content = $match.Groups[2].Value.Trim()
+                    })
+                    
+                    $lastIndex = $match.Index + $match.Length
+                }
+                
+                # Add remaining text after last code block
+                if ($lastIndex -lt $bodyContent.Length) {
+                    $textAfter = $bodyContent.Substring($lastIndex).Trim()
+                    if ($textAfter) {
+                        $segments.Add(@{ Type = 'Text'; Content = $textAfter })
+                    }
+                }
+                
+                # If no code blocks found, treat entire content as text
+                if ($segments.Count -eq 0) {
+                    $segments.Add(@{ Type = 'Text'; Content = $bodyContent })
+                }
+                
+                # Filter bullets ONLY in text segments
                 $progressiveBulletCount = 0
                 $visibleBulletCount = 0
                 
-                foreach ($line in $lines) {
-                    # Check if line is a progressive bullet (*)
-                    if ($line -match '^\s*\*\s+') {
-                        $progressiveBulletCount++
-                        if ($visibleBulletCount -lt $VisibleBullets) {
-                            $filteredLines.Add($line)
-                            $visibleBulletCount++
-                        } else {
-                            # Add blank line placeholder for hidden progressive bullets
-                            $filteredLines.Add("")
+                foreach ($segment in $segments) {
+                    if ($segment.Type -eq 'Code') {
+                        # Render code block in a panel
+                        $codeMarkup = [Spectre.Console.Markup]::Escape($segment.Content)
+                        $codeText = [Spectre.Console.Markup]::new($codeMarkup)
+                        
+                        $codePanel = [Spectre.Console.Panel]::new($codeText)
+                        $codePanel.Border = [Spectre.Console.BoxBorder]::Rounded
+                        $codePanel.Padding = [Spectre.Console.Padding]::new(2, 1, 2, 1)
+                        
+                        if ($segment.Language) {
+                            $codePanel.Header = [Spectre.Console.PanelHeader]::new($segment.Language)
                         }
+                        
+                        # Center the entire code panel
+                        $centeredCodePanel = Format-SpectreAligned -Data $codePanel -HorizontalAlignment Center
+                        
+                        $leftRenderables.Add($centeredCodePanel)
                     } else {
-                        # All other lines (including - bullets) are always shown
-                        $filteredLines.Add($line)
+                        # Filter bullets in text segments
+                        $lines = $segment.Content -split "`r?`n"
+                        $filteredLines = [System.Collections.Generic.List[string]]::new()
+                        
+                        foreach ($line in $lines) {
+                            # Check if line is a progressive bullet (*)
+                            if ($line -match '^\s*\*\s+') {
+                                $progressiveBulletCount++
+                                if ($visibleBulletCount -lt $VisibleBullets) {
+                                    $filteredLines.Add($line)
+                                    $visibleBulletCount++
+                                } else {
+                                    # Add blank line placeholder for hidden progressive bullets
+                                    $filteredLines.Add("")
+                                }
+                            } else {
+                                # All other lines (including - bullets) are always shown
+                                $filteredLines.Add($line)
+                            }
+                        }
+                        
+                        # Convert markdown formatting to Spectre markup
+                        $convertedLines = $filteredLines | ForEach-Object {
+                            ConvertTo-SpectreMarkup -Text $_
+                        }
+                        
+                        $textMarkup = [Spectre.Console.Markup]::new(($convertedLines -join "`n"))
+                        $leftRenderables.Add($textMarkup)
                     }
                 }
                 
@@ -164,23 +232,15 @@ function Show-ImageSlide {
                 if (-not $Slide.PSObject.Properties['TotalProgressiveBullets']) {
                     Add-Member -InputObject $Slide -NotePropertyName 'TotalProgressiveBullets' -NotePropertyValue $progressiveBulletCount -Force
                 }
-                
-                # Convert markdown formatting to Spectre markup
-                $convertedLines = $filteredLines | ForEach-Object {
-                    ConvertTo-SpectreMarkup -Text $_
-                }
-                
-                $textMarkup = [Spectre.Console.Markup]::new(($convertedLines -join "`n"))
-                $leftRenderables.Add($textMarkup)
             }
 
             # Combine left panel content into rows
             $leftRows = [Spectre.Console.Rows]::new([object[]]$leftRenderables.ToArray())
             
-            # Target height is always the viewport height
+            # Target height is the full viewport
             $targetHeight = $windowHeight
             
-            # Create a temporary panel to measure its actual height
+            # Create a temporary left panel to measure its natural height
             $tempLeftPanel = [Spectre.Console.Panel]::new($leftRows)
             $tempLeftPanel.Padding = [Spectre.Console.Padding]::new(2, 1, 2, 1)
             if ($borderStyle) {
@@ -190,19 +250,19 @@ function Show-ImageSlide {
                 $tempLeftPanel.BorderStyle = [Spectre.Console.Style]::new($borderColor)
             }
             
-            # Measure the panel height
-            $tempPanelSize = Get-SpectreRenderableSize -Renderable $tempLeftPanel -ContainerWidth $contentWidth
+            # Measure the natural height
+            $tempLeftPanelSize = Get-SpectreRenderableSize -Renderable $tempLeftPanel -ContainerWidth $contentWidth
             
-            # Add padding if content is shorter than viewport
+            # Add padding to reach full viewport height
             $finalLeftContent = $leftRows
-            if ($tempPanelSize.Height -lt $targetHeight) {
-                $neededContentPadding = $targetHeight - $tempPanelSize.Height
-                $topPad = [math]::Floor($neededContentPadding / 2.0)
-                $bottomPad = $neededContentPadding - $topPad
+            if ($tempLeftPanelSize.Height -lt $targetHeight) {
+                $heightDiff = $targetHeight - $tempLeftPanelSize.Height
+                $topPad = [math]::Floor($heightDiff / 2.0)
+                $bottomPad = $heightDiff - $topPad
                 $finalLeftContent = [Spectre.Console.Padder]::new($leftRows, [Spectre.Console.Padding]::new(0, $topPad, 0, $bottomPad))
             }
             
-            # Create final left panel
+            # Create final left panel with padded content
             $leftPanelTemp = [Spectre.Console.Panel]::new($finalLeftContent)
             $leftPanelTemp.Padding = [Spectre.Console.Padding]::new(2, 1, 2, 1)
             if ($borderStyle) {
@@ -215,9 +275,12 @@ function Show-ImageSlide {
             # Build right panel (image)
             $rightPanel = $null
             try {
-                # Resolve relative paths
+                # Detect if this is a web URL
+                $isWebUrl = $imagePath -match '^https?://'
+                
+                # Resolve relative paths for local files
                 $imagePathResolved = $imagePath
-                if (-not [System.IO.Path]::IsPathRooted($imagePath)) {
+                if (-not $isWebUrl -and -not [System.IO.Path]::IsPathRooted($imagePath)) {
                     $markdownDir = Split-Path -Parent $Slide.SourceFile
                     $imagePathResolved = Join-Path $markdownDir $imagePath
                 }
@@ -229,8 +292,27 @@ function Show-ImageSlide {
                     $imageColumnWidth - 8
                 }
                 
-                # Load image
+                # Calculate max height for image (allow for panel padding, border, and some margin)
+                # Panel has vertical padding of 1 top + 1 bottom = 2, plus 2 for borders = 4 total
+                $maxImageHeight = $targetHeight - 4
+                
+                # Load image (supports both local paths and web URLs)
                 $image = Get-SpectreImage -ImagePath $imagePathResolved -MaxWidth $maxImageWidth -ErrorAction Stop
+                
+                # Check if image height exceeds available space and reload with height constraint if needed
+                $imageSize = Get-SpectreRenderableSize -Renderable $image -ContainerWidth $imageColumnWidth
+                if ($imageSize.Height -gt $maxImageHeight) {
+                    Write-Verbose "  Image height ($($imageSize.Height)) exceeds max ($maxImageHeight), reloading with height constraint"
+                    # Reload image with both width and height constraints
+                    # Get-SpectreImage doesn't have MaxHeight, so we need to calculate appropriate MaxWidth
+                    # to maintain aspect ratio while fitting within height constraint
+                    $aspectRatio = $imageSize.Width / [Math]::Max($imageSize.Height, 1)
+                    $constrainedWidth = [math]::Floor($maxImageHeight * $aspectRatio)
+                    $constrainedWidth = [math]::Min($constrainedWidth, $maxImageWidth)
+                    
+                    Write-Verbose "  Reloading with constrained width: $constrainedWidth (aspect ratio: $aspectRatio)"
+                    $image = Get-SpectreImage -ImagePath $imagePathResolved -MaxWidth $constrainedWidth -ErrorAction Stop
+                }
                 
                 # Center horizontally first
                 $centeredImage = Format-SpectreAligned -Data $image -HorizontalAlignment Center
@@ -312,10 +394,16 @@ function Show-ImageSlide {
             # Use the left panel we already created
             $leftPanel = $leftPanelTemp
             
-            # Create a Grid layout with explicit column widths for side-by-side panels
+            # Create a Grid layout with explicit column widths for 60/40 split
             $grid = [Spectre.Console.Grid]::new()
-            $grid.AddColumn([Spectre.Console.GridColumn]::new()) | Out-Null
-            $grid.AddColumn([Spectre.Console.GridColumn]::new()) | Out-Null
+            $leftColumn = [Spectre.Console.GridColumn]::new()
+            $leftColumn.Width = $contentWidth
+            $grid.AddColumn($leftColumn) | Out-Null
+            
+            $rightColumn = [Spectre.Console.GridColumn]::new()
+            $rightColumn.Width = $imageColumnWidth
+            $grid.AddColumn($rightColumn) | Out-Null
+            
             $grid.AddRow($leftPanel, $rightPanel) | Out-Null
 
             # Render directly (no outer padding needed - panels fill viewport)
