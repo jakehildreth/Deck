@@ -49,7 +49,10 @@ function Show-Deck {
         [string]$Foreground,
 
         [Parameter()]
-        [string]$Border
+        [string]$Border,
+
+        [Parameter()]
+        [switch]$Strict
     )
 
     begin {
@@ -73,10 +76,182 @@ function Show-Deck {
                 $presentation.Settings.border = $Border
             }
 
+            # Pre-validate image slide content heights (only in Strict mode)
+            if ($Strict) {
+                $windowWidth = $Host.UI.RawUI.WindowSize.Width
+                $windowHeight = $Host.UI.RawUI.WindowSize.Height - 1
+                $contentWidth = [math]::Floor($windowWidth * 0.6)
+                $validationErrors = [System.Collections.Generic.List[string]]::new()
+                
+                for ($i = 0; $i -lt $presentation.Slides.Count; $i++) {
+                $slide = $presentation.Slides[$i]
+                    $slideNum = $i + 1
+                    
+                    # Detect slide type and validate
+                    if ($slide.Content -match '^\s*#\s+.+$' -and $slide.Content -notmatch '\n[^#]') {
+                        # Title slide - validate figlet height
+                        $titleMatch = [regex]::Match($slide.Content, '^\s*#\s+(.+?)$', [System.Text.RegularExpressions.RegexOptions]::Multiline)
+                        if ($titleMatch.Success) {
+                            $titleText = $titleMatch.Groups[1].Value.Trim()
+                            $smallFontPath = Join-Path $PSScriptRoot '../Fonts/small.flf'
+                            if (Test-Path $smallFontPath) {
+                                $font = [Spectre.Console.FigletFont]::Load($smallFontPath)
+                                $figlet = [Spectre.Console.FigletText]::new($font, $titleText)
+                            } else {
+                                $figlet = [Spectre.Console.FigletText]::new($titleText)
+                            }
+                            $figlet.Justification = [Spectre.Console.Justify]::Center
+                            
+                            $testSize = Get-SpectreRenderableSize -Renderable $figlet -ContainerWidth $windowWidth
+                            if ($testSize.Height -gt $windowHeight - 4) {
+                                $validationErrors.Add("Slide #${slideNum} (Title): Content height ($($testSize.Height)) exceeds viewport height ($windowHeight)")
+                            }
+                        }
+                    } elseif ($slide.Content -match '^\s*##\s+.+$' -and $slide.Content -notmatch '\n[^#]') {
+                        # Section slide - validate figlet height
+                        $sectionMatch = [regex]::Match($slide.Content, '^\s*##\s+(.+?)$', [System.Text.RegularExpressions.RegexOptions]::Multiline)
+                        if ($sectionMatch.Success) {
+                            $sectionText = $sectionMatch.Groups[1].Value.Trim()
+                            $miniFontPath = Join-Path $PSScriptRoot '../Fonts/mini.flf'
+                            if (Test-Path $miniFontPath) {
+                                $font = [Spectre.Console.FigletFont]::Load($miniFontPath)
+                                $figlet = [Spectre.Console.FigletText]::new($font, $sectionText)
+                            } else {
+                                $figlet = [Spectre.Console.FigletText]::new($sectionText)
+                            }
+                            $figlet.Justification = [Spectre.Console.Justify]::Center
+                            
+                            $testSize = Get-SpectreRenderableSize -Renderable $figlet -ContainerWidth $windowWidth
+                            if ($testSize.Height -gt $windowHeight - 4) {
+                                $validationErrors.Add("Slide #${slideNum} (Section): Content height ($($testSize.Height)) exceeds viewport height ($windowHeight)")
+                            }
+                        }
+                    } elseif ($slide.Content -match '\|\|\|') {
+                        # Multi-column slide - basic check (harder to validate precisely)
+                        $columns = $slide.Content -split '\|\|\|'
+                        foreach ($col in $columns) {
+                            $testText = [Spectre.Console.Markup]::new($col.Trim())
+                            $testSize = Get-SpectreRenderableSize -Renderable $testText -ContainerWidth ([math]::Floor($windowWidth / $columns.Count))
+                            if ($testSize.Height -gt $windowHeight - 4) {
+                                $validationErrors.Add("Slide #${slideNum} (Multi-column): Column content exceeds viewport height ($windowHeight)")
+                                break
+                            }
+                        }
+                    } elseif ($slide.Content -match '!\[[^\]]*\]\([^)]+\)' -and ($slide.Content -replace '!\[[^\]]*\]\([^)]+\)(?:\{width=\d+\})?', '').Trim().Length -gt 0) {
+                        # Image slide validation
+                        $imagePattern = '!\[([^\]]*)\]\(([^)]+)\)(?:\{width=(\d+)\})?'
+                        $imageMatch = [regex]::Match($slide.Content, $imagePattern)
+                        $imagePath = $imageMatch.Groups[2].Value
+                        
+                        # Check if image file exists
+                        $imagePathResolved = $imagePath
+                        if (-not [System.IO.Path]::IsPathRooted($imagePath)) {
+                            $markdownDir = Split-Path -Parent $Path
+                            $imagePathResolved = Join-Path $markdownDir $imagePath
+                        }
+                        
+                        if (-not (Test-Path $imagePathResolved)) {
+                            $validationErrors.Add("Slide #${slideNum} (Image): Image file not found: $imagePath")
+                        }
+                        
+                        $textContent = $slide.Content.Remove($imageMatch.Index, $imageMatch.Length).Trim()
+                        
+                        $hasHeader = $textContent -match '^###\s+(.+?)(?:\r?\n|$)'
+                        $headerText = if ($hasHeader) { $Matches[1].Trim() } else { $null }
+                        $bodyContent = if ($hasHeader) { $textContent -replace '^###\s+.+?(\r?\n|$)', '' } else { $textContent }
+                        $bodyContent = $bodyContent.Trim()
+                        
+                        if ($hasHeader -or $bodyContent) {
+                            $testRenderables = [System.Collections.Generic.List[object]]::new()
+                            
+                            if ($hasHeader) {
+                                $miniFontPath = Join-Path $PSScriptRoot '../Fonts/mini.flf'
+                                if (Test-Path $miniFontPath) {
+                                    $font = [Spectre.Console.FigletFont]::Load($miniFontPath)
+                                    $testFiglet = [Spectre.Console.FigletText]::new($font, $headerText)
+                                } else {
+                                    $testFiglet = [Spectre.Console.FigletText]::new($headerText)
+                                }
+                                $testFiglet.Justification = [Spectre.Console.Justify]::Left
+                                $testRenderables.Add($testFiglet)
+                            }
+                            
+                            if ($bodyContent) {
+                                $testMarkup = [Spectre.Console.Markup]::new($bodyContent)
+                                $testRenderables.Add($testMarkup)
+                            }
+                            
+                            $testRows = [Spectre.Console.Rows]::new([object[]]$testRenderables.ToArray())
+                            $testPanel = [Spectre.Console.Panel]::new($testRows)
+                            $testPanel.Padding = [Spectre.Console.Padding]::new(4, 1, 4, 1)
+                            
+                            $testSize = Get-SpectreRenderableSize -Renderable $testPanel -ContainerWidth $contentWidth
+                            
+                            if ($testSize.Height -gt $windowHeight) {
+                                $validationErrors.Add("Slide #${slideNum} (Image): Content height ($($testSize.Height)) exceeds viewport height ($windowHeight)")
+                            }
+                        }
+                    } else {
+                        # Content slide validation
+                        $testRenderables = [System.Collections.Generic.List[object]]::new()
+                        
+                        # Check for header
+                        if ($slide.Content -match '^###\s+(.+?)(?:\r?\n|$)') {
+                            $headerText = $Matches[1].Trim()
+                            $miniFontPath = Join-Path $PSScriptRoot '../Fonts/mini.flf'
+                            if (Test-Path $miniFontPath) {
+                                $font = [Spectre.Console.FigletFont]::Load($miniFontPath)
+                                $testFiglet = [Spectre.Console.FigletText]::new($font, $headerText)
+                            } else {
+                                $testFiglet = [Spectre.Console.FigletText]::new($headerText)
+                            }
+                            $testFiglet.Justification = [Spectre.Console.Justify]::Center
+                            $testRenderables.Add($testFiglet)
+                            
+                            $bodyContent = $slide.Content -replace '^###\s+.+?(\r?\n|$)', ''
+                        } else {
+                            $bodyContent = $slide.Content
+                        }
+                        
+                        if ($bodyContent.Trim()) {
+                            $testMarkup = [Spectre.Console.Markup]::new($bodyContent.Trim())
+                            $testRenderables.Add($testMarkup)
+                        }
+                        
+                        if ($testRenderables.Count -gt 0) {
+                            $testRows = [Spectre.Console.Rows]::new([object[]]$testRenderables.ToArray())
+                            $testPanel = [Spectre.Console.Panel]::new($testRows)
+                            $testPanel.Padding = [Spectre.Console.Padding]::new(4, 1, 4, 1)
+                            
+                            $testSize = Get-SpectreRenderableSize -Renderable $testPanel -ContainerWidth $windowWidth
+                            
+                            if ($testSize.Height -gt $windowHeight) {
+                                $validationErrors.Add("Slide #${slideNum} (Content): Content height ($($testSize.Height)) exceeds viewport height ($windowHeight)")
+                            }
+                        }
+                    }
+                }
+                
+                # If there are validation errors, fail with a detailed report
+                if ($validationErrors.Count -gt 0) {
+                    $errorReport = "Strict mode validation failed with $($validationErrors.Count) error(s):`n"
+                    foreach ($error in $validationErrors) {
+                        $errorReport += "  - $error`n"
+                    }
+                    $exception = [System.InvalidOperationException]::new($errorReport)
+                    $errorRecord = [System.Management.Automation.ErrorRecord]::new(
+                        $exception,
+                        'StrictModeValidationFailed',
+                        [System.Management.Automation.ErrorCategory]::InvalidData,
+                        $Path
+                    )
+                    $PSCmdlet.ThrowTerminatingError($errorRecord)
+                }
+            }
+
             Write-Host "`e[?25l" -NoNewline
 
-            try {
-                $currentSlide = 0
+            $currentSlide = 0
                 $totalSlides = $presentation.Slides.Count
                 $shouldExit = $false
                 $visibleBullets = @{}
@@ -109,6 +284,10 @@ function Show-Deck {
                     # Multi-column slide: Contains ||| delimiter
                     Write-Verbose "Rendering multi-column slide $($currentSlide + 1)/$totalSlides"
                     Show-MultiColumnSlide -Slide $slide -Settings $presentation.Settings
+                } elseif ($slide.Content -match '!\[[^\]]*\]\([^)]+\)' -and ($slide.Content -replace '!\[[^\]]*\]\([^)]+\)(?:\{width=\d+\})?', '').Trim().Length -gt 0) {
+                    # Image slide: Contains an image AND has text content besides the image
+                    Write-Verbose "Rendering image slide $($currentSlide + 1)/$totalSlides with $($visibleBullets[$currentSlide]) bullets"
+                    Show-ImageSlide -Slide $slide -Settings $presentation.Settings -VisibleBullets $visibleBullets[$currentSlide]
                 } else {
                     # Content slide: May have ### heading or just content
                     Write-Verbose "Rendering content slide $($currentSlide + 1)/$totalSlides with $($visibleBullets[$currentSlide]) bullets"
@@ -288,11 +467,6 @@ function Show-Deck {
             
             Start-Sleep -Milliseconds 800
             Clear-Host
-            }
-            finally {
-                # Show cursor again
-                Write-Host "`e[?25h" -NoNewline  # Show cursor
-            }
         } catch {
             $errorRecord = [System.Management.Automation.ErrorRecord]::new(
                 $_.Exception,
@@ -301,6 +475,9 @@ function Show-Deck {
                 $Path
             )
             $PSCmdlet.ThrowTerminatingError($errorRecord)
+        } finally {
+            # Show cursor again
+            Write-Host "`e[?25h" -NoNewline  # Show cursor
         }
     }
 

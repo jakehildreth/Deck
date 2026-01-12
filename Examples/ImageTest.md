@@ -5,67 +5,47 @@ border: cyan
 borderStyle: rounded
 ---
 
-# Image Demo
+# Image Slide Test
 
 ---
 
-### Text and Images
-
-This is some intro text before the image.
-
-![Example Image](../Ignore/test-image.png){width=10}
-
-And here's some text after the image.
+## Demo Time
 
 ---
 
-### Multiple Images
+### Example Image Slide
 
-First paragraph with explanatory text.
+This is some text content on the left side of the slide.
 
-![First Image](../Ignore/test-image.png){width=10}
+* First progressive bullet point
+* Second progressive bullet point
+* Third progressive bullet point
 
-Some text between images.
+Some additional text after the bullets.
 
-![Second Image](../Ignore/test-image.png){width=10}
-
-Final paragraph.
-
----
-
-### Images with Bullets
-
-* First bullet point
-* Second bullet point
-
-![Chart Example](../Ignore/test-image.png){width=10}
-
-* Third bullet point
-* Fourth bullet point
+![PowerShell Logo](https://raw.githubusercontent.com/PowerShell/PowerShell/master/assets/ps_black_128.svg)
 
 ---
 
-### Mixed Content
+### Another Example
 
-Here's a code example:
+Different text on the left, same image concept.
 
-```powershell
-Get-Process | Select-Object -First 5
-```
+- Static bullet one
+- Static bullet two
 
-And here's an image:
+More content here in a paragraph format that explains something important.
 
-![Terminal Screenshot](../Ignore/test-image.png){width=20}
-
-* Point about the screenshot
-* Another observation
+![Spectre Logo](https://spectreconsole.net/assets/images/spectreconsole.png){width=80}
 
 ---
 
-### Image with Alt Text Only
+### Minimal Content
 
-This tests the fallback behavior:
+Just a title.
 
-![This image does not exist](./nonexistent.png)
+![Test](https://spectreconsole.net/assets/images/spectreconsole.png)
 
-The fallback should show the alt text in a styled box.
+---
+
+## End
