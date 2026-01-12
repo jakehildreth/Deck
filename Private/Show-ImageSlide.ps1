@@ -46,8 +46,9 @@ function Show-ImageSlide {
     process {
         try {
             # Get terminal dimensions
-            $windowWidth = $Host.UI.RawUI.WindowSize.Width
-            $windowHeight = $Host.UI.RawUI.WindowSize.Height - 1
+            $dimensions = Get-TerminalDimensions
+            $windowWidth = $dimensions.Width
+            $windowHeight = $dimensions.Height
 
             # Parse content to separate text from image
             $imagePattern = '!\[([^\]]*)\]\(([^)]+)\)(?:\{width=(\d+)\})?'
@@ -82,23 +83,9 @@ function Show-ImageSlide {
                 $bodyContent = $textContent.Trim()
             }
 
-            # Get border color and style
-            $borderColor = $null
-            if ($Settings.border) {
-                $borderColorName = (Get-Culture).TextInfo.ToTitleCase($Settings.border.ToLower())
-                Write-Verbose "  Border color: $borderColorName"
-                try {
-                    $borderColor = [Spectre.Console.Color]::$borderColorName
-                } catch {
-                    Write-Warning "Invalid border color '$($Settings.border)', using default"
-                }
-            }
-            
-            $borderStyle = 'Rounded'
-            if ($Settings.borderStyle) {
-                $borderStyle = (Get-Culture).TextInfo.ToTitleCase($Settings.borderStyle.ToLower())
-                Write-Verbose "  Border style: $borderStyle"
-            }
+            # Get border and colors
+            $borderInfo = Get-BorderStyleFromSettings -Settings $Settings
+            $figletColor = Get-SpectreColorFromSettings -ColorName $Settings.foreground -SettingName 'Figlet'
 
             # Calculate column widths (60% text, 40% image)
             $contentWidth = [math]::Floor($windowWidth * 0.6)
@@ -109,29 +96,7 @@ function Show-ImageSlide {
             
             # Add header figlet if present
             if ($hasHeader) {
-                $figletColor = $null
-                if ($Settings.foreground) {
-                    $colorName = (Get-Culture).TextInfo.ToTitleCase($Settings.foreground.ToLower())
-                    Write-Verbose "  Header color: $colorName"
-                    try {
-                        $figletColor = [Spectre.Console.Color]::$colorName
-                    } catch {
-                        Write-Warning "Invalid color '$($Settings.foreground)', using default"
-                    }
-                }
-
-                # Create figlet for header
-                $miniFontPath = Join-Path $PSScriptRoot '../Fonts/mini.flf'
-                if (Test-Path $miniFontPath) {
-                    $font = [Spectre.Console.FigletFont]::Load($miniFontPath)
-                    $figlet = [Spectre.Console.FigletText]::new($font, $headerText)
-                } else {
-                    $figlet = [Spectre.Console.FigletText]::new($headerText)
-                }
-                $figlet.Justification = [Spectre.Console.Justify]::Left
-                if ($figletColor) {
-                    $figlet.Color = $figletColor
-                }
+                $figlet = New-FigletText -Text $headerText -FontPath (Join-Path $PSScriptRoot '../Fonts/mini.flf') -Color $figletColor -Justification Left
                 $leftRenderables.Add($figlet)
             }
 
@@ -192,10 +157,7 @@ function Show-ImageSlide {
                             $codePanel.Header = [Spectre.Console.PanelHeader]::new($segment.Language)
                         }
                         
-                        # Center the entire code panel
-                        $centeredCodePanel = Format-SpectreAligned -Data $codePanel -HorizontalAlignment Center
-                        
-                        $leftRenderables.Add($centeredCodePanel)
+                        $leftRenderables.Add($codePanel)
                     } else {
                         # Filter bullets in text segments
                         $lines = $segment.Content -split "`r?`n"
@@ -243,11 +205,11 @@ function Show-ImageSlide {
             # Create a temporary left panel to measure its natural height
             $tempLeftPanel = [Spectre.Console.Panel]::new($leftRows)
             $tempLeftPanel.Padding = [Spectre.Console.Padding]::new(2, 1, 2, 1)
-            if ($borderStyle) {
-                $tempLeftPanel.Border = [Spectre.Console.BoxBorder]::$borderStyle
+            if ($borderInfo.Style) {
+                $tempLeftPanel.Border = [Spectre.Console.BoxBorder]::$($borderInfo.Style)
             }
-            if ($borderColor) {
-                $tempLeftPanel.BorderStyle = [Spectre.Console.Style]::new($borderColor)
+            if ($borderInfo.Color) {
+                $tempLeftPanel.BorderStyle = [Spectre.Console.Style]::new($borderInfo.Color)
             }
             
             # Measure the natural height
@@ -265,11 +227,11 @@ function Show-ImageSlide {
             # Create final left panel with padded content
             $leftPanelTemp = [Spectre.Console.Panel]::new($finalLeftContent)
             $leftPanelTemp.Padding = [Spectre.Console.Padding]::new(2, 1, 2, 1)
-            if ($borderStyle) {
-                $leftPanelTemp.Border = [Spectre.Console.BoxBorder]::$borderStyle
+            if ($borderInfo.Style) {
+                $leftPanelTemp.Border = [Spectre.Console.BoxBorder]::$($borderInfo.Style)
             }
-            if ($borderColor) {
-                $leftPanelTemp.BorderStyle = [Spectre.Console.Style]::new($borderColor)
+            if ($borderInfo.Color) {
+                $leftPanelTemp.BorderStyle = [Spectre.Console.Style]::new($borderInfo.Color)
             }
 
             # Build right panel (image)
@@ -320,11 +282,11 @@ function Show-ImageSlide {
                 # Measure centered image to see if we need padding
                 $imageTempPanel = [Spectre.Console.Panel]::new($centeredImage)
                 $imageTempPanel.Padding = [Spectre.Console.Padding]::new(2, 1, 2, 1)
-                if ($borderStyle) {
-                    $imageTempPanel.Border = [Spectre.Console.BoxBorder]::$borderStyle
+                if ($borderInfo.Style) {
+                    $imageTempPanel.Border = [Spectre.Console.BoxBorder]::$($borderInfo.Style)
                 }
-                if ($borderColor) {
-                    $imageTempPanel.BorderStyle = [Spectre.Console.Style]::new($borderColor)
+                if ($borderInfo.Color) {
+                    $imageTempPanel.BorderStyle = [Spectre.Console.Style]::new($borderInfo.Color)
                 }
                 $imagePanelSize = Get-SpectreRenderableSize -Renderable $imageTempPanel -ContainerWidth $imageColumnWidth
                 
@@ -340,11 +302,11 @@ function Show-ImageSlide {
                 # Create final right panel
                 $rightPanel = [Spectre.Console.Panel]::new($finalImageContent)
                 $rightPanel.Padding = [Spectre.Console.Padding]::new(2, 1, 2, 1)
-                if ($borderStyle) {
-                    $rightPanel.Border = [Spectre.Console.BoxBorder]::$borderStyle
+                if ($borderInfo.Style) {
+                    $rightPanel.Border = [Spectre.Console.BoxBorder]::$($borderInfo.Style)
                 }
-                if ($borderColor) {
-                    $rightPanel.BorderStyle = [Spectre.Console.Style]::new($borderColor)
+                if ($borderInfo.Color) {
+                    $rightPanel.BorderStyle = [Spectre.Console.Style]::new($borderInfo.Color)
                 }
                 
             } catch {
@@ -363,11 +325,11 @@ function Show-ImageSlide {
                 # Measure centered error to see if we need padding
                 $errorTempPanel = [Spectre.Console.Panel]::new($centeredError)
                 $errorTempPanel.Padding = [Spectre.Console.Padding]::new(2, 1, 2, 1)
-                if ($borderStyle) {
-                    $errorTempPanel.Border = [Spectre.Console.BoxBorder]::$borderStyle
+                if ($borderInfo.Style) {
+                    $errorTempPanel.Border = [Spectre.Console.BoxBorder]::$($borderInfo.Style)
                 }
-                if ($borderColor) {
-                    $errorTempPanel.BorderStyle = [Spectre.Console.Style]::new($borderColor)
+                if ($borderInfo.Color) {
+                    $errorTempPanel.BorderStyle = [Spectre.Console.Style]::new($borderInfo.Color)
                 }
                 $errorPanelSize = Get-SpectreRenderableSize -Renderable $errorTempPanel -ContainerWidth $imageColumnWidth
                 
@@ -383,11 +345,11 @@ function Show-ImageSlide {
                 # Create final right panel
                 $rightPanel = [Spectre.Console.Panel]::new($finalErrorContent)
                 $rightPanel.Padding = [Spectre.Console.Padding]::new(2, 1, 2, 1)
-                if ($borderStyle) {
-                    $rightPanel.Border = [Spectre.Console.BoxBorder]::$borderStyle
+                if ($borderInfo.Style) {
+                    $rightPanel.Border = [Spectre.Console.BoxBorder]::$($borderInfo.Style)
                 }
-                if ($borderColor) {
-                    $rightPanel.BorderStyle = [Spectre.Console.Style]::new($borderColor)
+                if ($borderInfo.Color) {
+                    $rightPanel.BorderStyle = [Spectre.Console.Style]::new($borderInfo.Color)
                 }
             }
 

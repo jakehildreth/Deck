@@ -44,9 +44,9 @@ function Show-ContentSlide {
     process {
         try {
             # Get terminal dimensions
-            # Account for rendering behavior to prevent scrolling
-            $windowWidth = $Host.UI.RawUI.WindowSize.Width
-            $windowHeight = $Host.UI.RawUI.WindowSize.Height - 1
+            $dimensions = Get-TerminalDimensions
+            $windowWidth = $dimensions.Width
+            $windowHeight = $dimensions.Height
 
             # Determine if slide has a header and extract content
             $hasHeader = $false
@@ -192,53 +192,16 @@ function Show-ContentSlide {
                 }
             }
             
-            # Get border color and style
-            $borderColor = $null
-            if ($Settings.border) {
-                $borderColorName = (Get-Culture).TextInfo.ToTitleCase($Settings.border.ToLower())
-                Write-Verbose "  Border color: $borderColorName"
-                try {
-                    $borderColor = [Spectre.Console.Color]::$borderColorName
-                } catch {
-                    Write-Warning "Invalid border color '$($Settings.border)', using default"
-                }
-            }
-            
-            $borderStyle = 'Rounded'
-            if ($Settings.borderStyle) {
-                $borderStyle = (Get-Culture).TextInfo.ToTitleCase($Settings.borderStyle.ToLower())
-                Write-Verbose "  Border style: $borderStyle"
-            }
+            # Get border and colors
+            $borderInfo = Get-BorderStyleFromSettings -Settings $Settings
+            $figletColor = Get-SpectreColorFromSettings -ColorName $Settings.foreground -SettingName 'Figlet'
 
             # Build the renderable content
             $renderables = [System.Collections.Generic.List[object]]::new()
             
             # Add header figlet if present
             if ($hasHeader) {
-                # Convert color name to Spectre.Console.Color
-                $figletColor = $null
-                if ($Settings.foreground) {
-                    $colorName = (Get-Culture).TextInfo.ToTitleCase($Settings.foreground.ToLower())
-                    Write-Verbose "  Header color: $colorName"
-                    try {
-                        $figletColor = [Spectre.Console.Color]::$colorName
-                    } catch {
-                        Write-Warning "Invalid color '$($Settings.foreground)', using default"
-                    }
-                }
-
-                # Create figlet for header
-                $miniFontPath = Join-Path $PSScriptRoot '../Fonts/mini.flf'
-                if (Test-Path $miniFontPath) {
-                    $font = [Spectre.Console.FigletFont]::Load($miniFontPath)
-                    $figlet = [Spectre.Console.FigletText]::new($font, $headerText)
-                } else {
-                    $figlet = [Spectre.Console.FigletText]::new($headerText)
-                }
-                $figlet.Justification = [Spectre.Console.Justify]::Center
-                if ($figletColor) {
-                    $figlet.Color = $figletColor
-                }
+                $figlet = New-FigletText -Text $headerText -FontPath (Join-Path $PSScriptRoot '../Fonts/mini.flf') -Color $figletColor -Justification Center
                 $renderables.Add($figlet)
             }
 
@@ -264,7 +227,7 @@ function Show-ContentSlide {
                             $codePanel.Header = [Spectre.Console.PanelHeader]::new($segment.Language)
                         }
                         
-                        # Center the entire code panel
+                        # Center code blocks in single-column content slides
                         $centeredCodePanel = Format-SpectreAligned -Data $codePanel -HorizontalAlignment Center
                         
                         $renderables.Add($centeredCodePanel)
@@ -348,7 +311,9 @@ function Show-ContentSlide {
             
             # Measure the actual height of the rendered content
             # (blank placeholder lines maintain consistent height for progressive bullets)
-            $contentSize = Get-SpectreRenderableSize -Renderable $rows -ContainerWidth $windowWidth
+            # Account for horizontal padding (4 left + 4 right = 8 total)
+            $availableWidth = $windowWidth - 8
+            $contentSize = Get-SpectreRenderableSize -Renderable $rows -ContainerWidth $availableWidth
             $actualContentHeight = $contentSize.Height
             
             # Calculate padding - be more conservative with bottom padding for images
@@ -373,14 +338,12 @@ function Show-ContentSlide {
             $panel.Expand = $true
             $panel.Padding = [Spectre.Console.Padding]::new(4, $topPadding, 4, $bottomPadding)
             
-            # Add border style
-            if ($borderStyle) {
-                $panel.Border = [Spectre.Console.BoxBorder]::$borderStyle
+            # Add border style and color
+            if ($borderInfo.Style) {
+                $panel.Border = [Spectre.Console.BoxBorder]::$($borderInfo.Style)
             }
-            
-            # Add border color
-            if ($borderColor) {
-                $panel.BorderStyle = [Spectre.Console.Style]::new($borderColor)
+            if ($borderInfo.Color) {
+                $panel.BorderStyle = [Spectre.Console.Style]::new($borderInfo.Color)
             }
             
             # Render panel

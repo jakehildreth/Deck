@@ -45,55 +45,26 @@ function Show-TitleSlide {
                 throw "Title slide does not contain a valid # heading"
             }
 
-            # Convert colors to Spectre.Console.Color
-            $figletColor = $null
-            if ($Settings.foreground) {
-                $colorName = (Get-Culture).TextInfo.ToTitleCase($Settings.foreground.ToLower())
-                Write-Verbose "  Figlet color: $colorName"
-                try {
-                    $figletColor = [Spectre.Console.Color]::$colorName
-                } catch {
-                    Write-Warning "Invalid color '$($Settings.foreground)', using default"
-                }
-            }
-
-            $borderColor = $null
-            if ($Settings.border) {
-                $borderColorName = (Get-Culture).TextInfo.ToTitleCase($Settings.border.ToLower())
-                Write-Verbose "  Border color: $borderColorName"
-                try {
-                    $borderColor = [Spectre.Console.Color]::$borderColorName
-                } catch {
-                    Write-Warning "Invalid border color '$($Settings.border)', using default"
-                }
-            }
-
-            # Determine border style
-            $borderStyle = 'Rounded'
-            if ($Settings.borderStyle) {
-                $borderStyle = (Get-Culture).TextInfo.ToTitleCase($Settings.borderStyle.ToLower())
-                Write-Verbose "  Border style: $borderStyle"
-            }
+            # Get colors and styles from settings
+            $figletColor = Get-SpectreColorFromSettings -ColorName $Settings.foreground -SettingName 'Figlet'
+            $borderInfo = Get-BorderStyleFromSettings -Settings $Settings
 
             # Create figlet text object
-            $figlet = [Spectre.Console.FigletText]::new($titleText)
-            $figlet.Justification = [Spectre.Console.Justify]::Center
-            if ($figletColor) {
-                $figlet.Color = $figletColor
-            }
+            $figlet = New-FigletText -Text $titleText -Color $figletColor -Justification Center
 
             # Create panel with internal padding calculated to fill terminal height
             # Account for rendering behavior to prevent scrolling
-            $windowHeight = $Host.UI.RawUI.WindowSize.Height - 1
-            $windowWidth = $Host.UI.RawUI.WindowSize.Width
+            $dimensions = Get-TerminalDimensions
+            $windowHeight = $dimensions.Height
+            $windowWidth = $dimensions.Width
             
             # Set panel to expand and measure what we need to fill
             $panel = [Spectre.Console.Panel]::new($figlet)
             $panel.Expand = $true
             
             # Add border style first
-            if ($borderStyle) {
-                $panel.Border = [Spectre.Console.BoxBorder]::$borderStyle
+            if ($borderInfo.Style) {
+                $panel.Border = [Spectre.Console.BoxBorder]::$($borderInfo.Style)
             }
             
             # Measure figlet with horizontal padding already applied
@@ -112,13 +83,13 @@ function Show-TitleSlide {
             $panel.Padding = [Spectre.Console.Padding]::new(4, $topPadding, 4, $bottomPadding)
             
             # Border style already added above
-            if ($borderStyle) {
-                $panel.Border = [Spectre.Console.BoxBorder]::$borderStyle
+            if ($borderInfo.Style) {
+                $panel.Border = [Spectre.Console.BoxBorder]::$($borderInfo.Style)
             }
             
             # Add border color
-            if ($borderColor) {
-                $panel.BorderStyle = [Spectre.Console.Style]::new($borderColor)
+            if ($borderInfo.Color) {
+                $panel.BorderStyle = [Spectre.Console.Style]::new($borderInfo.Color)
             }
             
             # Add help text title for first slide

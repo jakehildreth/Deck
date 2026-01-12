@@ -36,8 +36,9 @@ function Show-MultiColumnSlide {
     process {
         try {
             # Get terminal dimensions
-            $windowWidth = $Host.UI.RawUI.WindowSize.Width
-            $windowHeight = $Host.UI.RawUI.WindowSize.Height - 1
+            $dimensions = Get-TerminalDimensions
+            $windowWidth = $dimensions.Width
+            $windowHeight = $dimensions.Height
 
             # Determine if slide has a header and extract content
             $hasHeader = $false
@@ -65,22 +66,7 @@ function Show-MultiColumnSlide {
             Write-Verbose "  Detected $($columns.Count) columns"
 
             # Get border color and style
-            $borderColor = $null
-            if ($Settings.border) {
-                $borderColorName = (Get-Culture).TextInfo.ToTitleCase($Settings.border.ToLower())
-                Write-Verbose "  Border color: $borderColorName"
-                try {
-                    $borderColor = [Spectre.Console.Color]::$borderColorName
-                } catch {
-                    Write-Warning "Invalid border color '$($Settings.border)', using default"
-                }
-            }
-            
-            $borderStyle = 'Rounded'
-            if ($Settings.borderStyle) {
-                $borderStyle = (Get-Culture).TextInfo.ToTitleCase($Settings.borderStyle.ToLower())
-                Write-Verbose "  Border style: $borderStyle"
-            }
+            $borderInfo = Get-BorderStyleFromSettings -Settings $Settings
 
             # Build the renderable content
             $renderables = [System.Collections.Generic.List[object]]::new()
@@ -88,29 +74,11 @@ function Show-MultiColumnSlide {
             # Add header figlet if present
             if ($hasHeader) {
                 # Convert color name to Spectre.Console.Color
-                $figletColor = $null
-                if ($Settings.foreground) {
-                    $colorName = (Get-Culture).TextInfo.ToTitleCase($Settings.foreground.ToLower())
-                    Write-Verbose "  Header color: $colorName"
-                    try {
-                        $figletColor = [Spectre.Console.Color]::$colorName
-                    } catch {
-                        Write-Warning "Invalid color '$($Settings.foreground)', using default"
-                    }
-                }
+                $figletColor = Get-SpectreColorFromSettings -ColorName $Settings.foreground -SettingName 'Header'
 
                 # Create figlet for header
                 $miniFontPath = Join-Path $PSScriptRoot '../Fonts/mini.flf'
-                if (Test-Path $miniFontPath) {
-                    $font = [Spectre.Console.FigletFont]::Load($miniFontPath)
-                    $figlet = [Spectre.Console.FigletText]::new($font, $headerText)
-                } else {
-                    $figlet = [Spectre.Console.FigletText]::new($headerText)
-                }
-                $figlet.Justification = [Spectre.Console.Justify]::Center
-                if ($figletColor) {
-                    $figlet.Color = $figletColor
-                }
+                $figlet = New-FigletText -Text $headerText -FontPath $miniFontPath -Color $figletColor -Justification Center
                 $renderables.Add($figlet)
             }
 
@@ -120,41 +88,10 @@ function Show-MultiColumnSlide {
             foreach ($columnContent in $columns) {
                 if ($columnContent) {
                     # Parse code blocks in this column
-                    $codeBlockPattern = '(?s)```(\w+)?\r?\n(.*?)\r?\n```'
-                    $columnSegments = [System.Collections.Generic.List[object]]::new()
-                    $lastIndex = 0
-                    
-                    foreach ($match in [regex]::Matches($columnContent, $codeBlockPattern)) {
-                        # Add text before code block
-                        if ($match.Index -gt $lastIndex) {
-                            $textBefore = $columnContent.Substring($lastIndex, $match.Index - $lastIndex).Trim()
-                            if ($textBefore) {
-                                $columnSegments.Add(@{ Type = 'Text'; Content = $textBefore })
-                            }
-                        }
+                    $columnSegments = ConvertTo-CodeBlockSegments -Content $columnContent
                         
-                        # Add code block
-                        $columnSegments.Add(@{
-                            Type = 'Code'
-                            Language = $match.Groups[1].Value
-                            Content = $match.Groups[2].Value.Trim()
-                        })
-                        
-                        $lastIndex = $match.Index + $match.Length
-                    }
-                    
-                    # Add remaining text after last code block
-                    if ($lastIndex -lt $columnContent.Length) {
-                        $textAfter = $columnContent.Substring($lastIndex).Trim()
-                        if ($textAfter) {
-                            $columnSegments.Add(@{ Type = 'Text'; Content = $textAfter })
-                        }
-                    }
-                    
-                    # If no code blocks found, treat entire content as text
-                    if ($columnSegments.Count -eq 0) {
-                        $columnSegments.Add(@{ Type = 'Text'; Content = $columnContent })
-                    }
+                    # Parse code blocks in this column
+                    $columnSegments = ConvertTo-CodeBlockSegments -Content $columnContent
                     
                     # Build renderables for this column
                     $columnParts = [System.Collections.Generic.List[object]]::new()
@@ -173,10 +110,7 @@ function Show-MultiColumnSlide {
                                 $codePanel.Header = [Spectre.Console.PanelHeader]::new($segment.Language)
                             }
                             
-                            # Center the entire code panel
-                            $centeredCodePanel = Format-SpectreAligned -Data $codePanel -HorizontalAlignment Center
-                            
-                            $columnParts.Add($centeredCodePanel)
+                            $columnParts.Add($codePanel)
                         } else {
                             # Render text
                             $textLines = $segment.Content -split "`r?`n" | ForEach-Object {
@@ -221,20 +155,32 @@ function Show-MultiColumnSlide {
             # Add content as a single row with all columns
             $grid.AddRow($columnRenderables.ToArray()) | Out-Null
             
-            # Center the grid horizontally to handle short content
+            # Measure grid height BEFORE wrapping in alignment
+            # This ensures accurate measurement without Format-SpectreAligned interference
+            $renderablesForMeasurement = [System.Collections.Generic.List[object]]::new($renderables)
+            $renderablesForMeasurement.Add($grid)
+            $rowsForMeasurement = [Spectre.Console.Rows]::new([object[]]$renderablesForMeasurement.ToArray())
+            
+            # Measure the actual height of the rendered content
+            # Account for horizontal padding (4 left + 4 right = 8 total)
+            $availableWidth = $windowWidth - 8
+            $contentSize = Get-SpectreRenderableSize -Renderable $rowsForMeasurement -ContainerWidth $availableWidth
+            $actualContentHeight = $contentSize.Height
+            
+            # Now center the grid for display
             $centeredGrid = Format-SpectreAligned -Data $grid -HorizontalAlignment Center
             $renderables.Add($centeredGrid)
 
-            # Combine renderables into a Rows layout
+            # Combine renderables into a Rows layout for rendering
             $rows = [Spectre.Console.Rows]::new([object[]]$renderables.ToArray())
             
-            # Measure the actual height of the rendered content
-            $contentSize = Get-SpectreRenderableSize -Renderable $rows -ContainerWidth $windowWidth
-            $actualContentHeight = $contentSize.Height
-            
             # Calculate padding
+            # Add safety buffer if content contains code blocks (measurement might be slightly off)
+            $hasCodeBlocks = $columnRenderables | ForEach-Object { $_ } | Where-Object { $_ -is [Spectre.Console.Panel] }
+            $heightBuffer = if ($hasCodeBlocks) { 2 } else { 0 }
+            
             $borderHeight = 2
-            $remainingSpace = $windowHeight - $actualContentHeight - $borderHeight
+            $remainingSpace = $windowHeight - $actualContentHeight - $borderHeight - $heightBuffer
             $topPadding = [math]::Max(0, [math]::Ceiling($remainingSpace / 2.0))
             $bottomPadding = [math]::Max(0, $remainingSpace - $topPadding)
             
@@ -245,14 +191,12 @@ function Show-MultiColumnSlide {
             $panel.Expand = $true
             $panel.Padding = [Spectre.Console.Padding]::new(4, $topPadding, 4, $bottomPadding)
             
-            # Add border style
-            if ($borderStyle) {
-                $panel.Border = [Spectre.Console.BoxBorder]::$borderStyle
+            # Add border style and color
+            if ($borderInfo.Style) {
+                $panel.Border = [Spectre.Console.BoxBorder]::$($borderInfo.Style)
             }
-            
-            # Add border color
-            if ($borderColor) {
-                $panel.BorderStyle = [Spectre.Console.Style]::new($borderColor)
+            if ($borderInfo.Color) {
+                $panel.BorderStyle = [Spectre.Console.Style]::new($borderInfo.Color)
             }
             
             # Render panel
