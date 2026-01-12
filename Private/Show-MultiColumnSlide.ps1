@@ -132,18 +132,29 @@ function Show-MultiColumnSlide {
                 }
             }
 
-            # Create columns layout with even spacing
-            # Calculate padding for n+1 spacing (space before, between, and after columns)
+            # Create columns layout using Grid for equal-width columns
+            # Grid provides explicit control over column widths
             $columnCount = $columnRenderables.Count
-            $totalGaps = $columnCount + 1
-            $estimatedColumnWidth = ($windowWidth * 0.7) / $columnCount
-            $availableSpacing = $windowWidth - ($estimatedColumnWidth * $columnCount)
-            $padding = [math]::Max(2, [math]::Floor($availableSpacing / $totalGaps))
             
-            $columnsLayout = $columnRenderables.ToArray() | Format-SpectreColumns -Padding $padding
-            # Center the columns to create even left/right margins
-            $centeredColumns = $columnsLayout | Format-SpectreAligned -HorizontalAlignment Center
-            $renderables.Add($centeredColumns)
+            Write-Verbose "  Creating $columnCount equal-width columns using Grid"
+            
+            # Create a Grid with equal-width columns
+            $grid = [Spectre.Console.Grid]::new()
+            
+            # Add columns to the grid (one GridColumn per content column)
+            for ($i = 0; $i -lt $columnCount; $i++) {
+                $gridColumn = [Spectre.Console.GridColumn]::new()
+                $gridColumn.NoWrap = $false
+                $gridColumn.Padding = [Spectre.Console.Padding]::new(2, 0, 2, 0)  # Horizontal padding
+                $grid.AddColumn($gridColumn) | Out-Null
+            }
+            
+            # Add content as a single row with all columns
+            $grid.AddRow($columnRenderables.ToArray()) | Out-Null
+            
+            # Center the grid horizontally to handle short content
+            $centeredGrid = Format-SpectreAligned -Data $grid -HorizontalAlignment Center
+            $renderables.Add($centeredGrid)
 
             # Combine renderables into a Rows layout
             $rows = [Spectre.Console.Rows]::new([object[]]$renderables.ToArray())

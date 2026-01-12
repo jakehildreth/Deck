@@ -48,6 +48,17 @@ Run the presentation:
 Show-Deck -Path ./presentation.md
 ```
 
+Validate content before presenting:
+
+```powershell
+Show-Deck -Path ./presentation.md -Strict
+```
+
+The `-Strict` parameter validates:
+- Content height doesn't exceed viewport
+- Image files exist
+- Reports all errors before starting
+
 ## Features
 
 ### Slide Types
@@ -55,7 +66,25 @@ Show-Deck -Path ./presentation.md
 * Title Slides - Single `#` heading with large figlet text  
 * Section Slides - Single `##` heading with medium figlet text  
 * Content Slides - `###` heading with body content  
+* Image Slides - Two-panel layout with content left (60%), image right (40%)  
 * Multi-Column Slides - Split content with `|||` delimiter
+
+#### Image Slides
+
+Create side-by-side layouts with text and images:
+
+```markdown
+### Slide Title
+
+Text content on the left.
+
+* Progressive bullets supported
+* Auto-sized images
+
+![Alt Text](image.png){width=80}
+```
+
+Images are auto-detected. Use relative or absolute paths. Optional `{width=N}` sets max width.
 
 ### Bullet Points
 
@@ -103,6 +132,7 @@ Show-Deck -Path ./Examples/ExampleDeck.md
 ```
 
 Additional examples:
+- [Examples/ImageTest.md](Examples/ImageTest.md) - Image slide layouts
 - [Examples/MultiColumnTest.md](Examples/MultiColumnTest.md) - Multi-column layouts
 - [Examples/BulletTest.md](Examples/BulletTest.md) - Bullet reveal behavior
 - [Examples/TitleTest.md](Examples/TitleTest.md) - Title and section slides

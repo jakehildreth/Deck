@@ -70,11 +70,31 @@ That's it!
 
 ---
 
-### Three Slide Types
+### Four Slide Types
 
 - Title slides: Single # heading, large text
 - Section slides: Single ## heading, medium text  
 - Content slides: ### heading with body content
+- Image slides: Content on left (60%), image on right (40%)
+
+---
+
+### Image Slides
+
+Two-panel layout with text content and image side-by-side:
+
+```markdown
+### Slide Title
+
+Text content on the left panel.
+
+* Progressive bullets work here too
+* Second bullet
+
+![Alt Text](path/to/image.png)
+```
+
+Images auto-size to fit. Use `{width=N}` to set max width.
 
 ---
 
@@ -127,6 +147,8 @@ Mix formatting: **Bold with `code`** or *italic with ~~strike~~*
 ### Multi-Column Layouts
 
 Split content into columns using three pipes.
+
+|||
 
 First column with **bold** text.
 
