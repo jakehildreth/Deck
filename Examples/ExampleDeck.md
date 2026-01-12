@@ -122,6 +122,7 @@ Deck supports inline formatting:
 *Italic text* or _also italic_
 `Inline code` for technical terms
 ~~Strikethrough~~ for corrections
+<red>Colored text</red> using HTML tags
 ```
 
 |||
@@ -135,6 +136,30 @@ Renders as:
 *Italic text* or _also italic_
 `Inline code` for technical terms
 ~~Strikethrough~~ for corrections
+<red>Colored text</red> using HTML tags
+
+---
+
+### Color Support
+
+Add color to your text using HTML tags:
+
+* <red>Red text</red> for emphasis
+* <blue>Blue text</blue> for information
+* <green>Green text</green> for success
+* <yellow>Yellow text</yellow> for warnings
+
+You can combine: **<magenta>bold magenta</magenta>** and *<cyan>italic cyan</cyan>*
+
+|||
+
+Syntax examples:
+
+```markdown
+<red>text</red>
+<blue>text</blue>
+<span style="color:green">text</span>
+```
 
 ---
 
@@ -144,15 +169,15 @@ Split content into columns using three pipes.
 
 |||
 
-First column with **bold** text.
+Second column with **bold** text.
 
 |||
 
-Second column with *italic* text.
+Third column with *italic* text.
 
 |||
 
-Third column with `code` formatting.
+Fourth column with `code` formatting.
 
 ---
 

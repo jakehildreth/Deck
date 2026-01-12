@@ -48,6 +48,18 @@ Describe 'ConvertTo-SpectreMarkup' {
             $result = ConvertTo-SpectreMarkup -Text 'Use `Get-Process` or `Get-Service` cmdlets'
             $result | Should -Be 'Use [grey on grey15]Get-Process[/] or [grey on grey15]Get-Service[/] cmdlets'
         }
+
+        It 'Escapes angle brackets in code' {
+            $text = 'Use `<red>text</red>` for colors'
+            $result = ConvertTo-SpectreMarkup -Text $text
+            $result | Should -Be 'Use [grey on grey15]&lt;red&gt;text&lt;/red&gt;[/] for colors'
+        }
+
+        It 'Escapes square brackets in code' {
+            $text = 'Use `[bold]text[/]` for bold'
+            $result = ConvertTo-SpectreMarkup -Text $text
+            $result | Should -Be 'Use [grey on grey15]&#91;bold&#93;text&#91;/&#93;[/] for bold'
+        }
     }
 
     Context 'Strikethrough formatting' {
@@ -108,4 +120,36 @@ Describe 'ConvertTo-SpectreMarkup' {
             $results[1] | Should -Be 'Second [italic]italic[/]'
         }
     }
+
+    Context 'Color formatting' {
+        It 'Converts simple color tag syntax' {
+            $result = ConvertTo-SpectreMarkup -Text 'This is <red>red text</red>'
+            $result | Should -Be 'This is [red]red text[/]'
+        }
+
+        It 'Converts span style color syntax' {
+            $text = 'This is <span style="color:blue">blue text</span>'
+            $result = ConvertTo-SpectreMarkup -Text $text
+            $result | Should -Be 'This is [blue]blue text[/]'
+        }
+
+        It 'Handles multiple color sections' {
+            $text = 'Text with <red>red</red> and <blue>blue</blue>'
+            $result = ConvertTo-SpectreMarkup -Text $text
+            $result | Should -Be 'Text with [red]red[/] and [blue]blue[/]'
+        }
+
+        It 'Handles color with bold' {
+            $text = '**<red>bold red text</red>**'
+            $result = ConvertTo-SpectreMarkup -Text $text
+            $result | Should -Be '[bold][red]bold red text[/][/]'
+        }
+
+        It 'Handles color with italic' {
+            $text = '*<blue>italic blue text</blue>*'
+            $result = ConvertTo-SpectreMarkup -Text $text
+            $result | Should -Be '[italic][blue]italic blue text[/][/]'
+        }
+    }
 }
+

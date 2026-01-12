@@ -111,6 +111,19 @@ Content appears here
 * `*italic*` or `_italic_`  
 * `` `code` ``  
 * `~~strikethrough~~`
+* `<colorname>text</colorname>` or `<span style="color:colorname">text</span>` for colors
+
+#### Color Examples
+
+```markdown
+This text has <red>red</red>, <blue>blue</blue>, and <green>green</green> colors.
+
+You can use standard HTML: <span style="color:yellow">yellow text</span>
+
+Mix with formatting: **<red>bold red text</red>** or *<blue>italic blue</blue>*
+```
+
+Supports all [Spectre.Console color names](https://spectreconsole.net/appendix/colors).
 
 ### Navigation
 
@@ -146,6 +159,7 @@ Show-Deck -Path ./Examples/ExampleDeck.md
 ```
 
 Additional examples:
+- [Examples/ColorTest.md](Examples/ColorTest.md) - Color text examples
 - [Examples/ImageTest.md](Examples/ImageTest.md) - Image slide layouts
 - [Examples/MultiColumnTest.md](Examples/MultiColumnTest.md) - Multi-column layouts
 - [Examples/BulletTest.md](Examples/BulletTest.md) - Bullet reveal behavior
