@@ -5,7 +5,8 @@ function Show-TitleSlide {
 
     .DESCRIPTION
         Displays a full-screen title slide containing a # heading rendered as large
-        figlet text. Title slides are centered and use the configured titleFont setting.
+        figlet text. Title slides are centered and use the configured h1 font setting
+        (also accepts aliases: titleFont, h1Font).
 
     .PARAMETER Slide
         The slide object containing the content to render.
@@ -28,12 +29,14 @@ function Show-TitleSlide {
         [hashtable]$Settings,
 
         [Parameter()]
-        [switch]$IsFirstSlide
-    )
+        [switch]$IsFirstSlide,
 
-    begin {
-        Write-Verbose "Rendering title slide #$($Slide.Number)"
-    }
+        [Parameter(Mandatory = $false)]
+        [int]$CurrentSlide = 1,
+
+        [Parameter(Mandatory = $false)]
+        [int]$TotalSlides = 1
+    )
 
     process {
         try {
@@ -49,8 +52,29 @@ function Show-TitleSlide {
             $figletColor = Get-SpectreColorFromSettings -ColorName $Settings.foreground -SettingName 'Figlet'
             $borderInfo = Get-BorderStyleFromSettings -Settings $Settings
 
-            # Create figlet text object
-            $figlet = New-FigletText -Text $titleText -Color $figletColor -Justification Center
+            # Create figlet text object with optional font from settings
+            $figletParams = @{
+                Text = $titleText
+                Color = $figletColor
+                Justification = 'Center'
+            }
+            if ($Settings.h1 -and $Settings.h1 -ne 'default') {
+                $fontPath = if (Test-Path $Settings.h1) {
+                    $Settings.h1
+                } else {
+                    Join-Path $PSScriptRoot "../Fonts/$($Settings.h1).flf"
+                }
+                Write-Verbose "  h1 font setting: $($Settings.h1)"
+                Write-Verbose "  Constructed font path: $fontPath"
+                Write-Verbose "  Font file exists: $(Test-Path $fontPath)"
+                if (Test-Path $fontPath) {
+                    $figletParams['FontPath'] = $fontPath
+                    Write-Verbose "  Using h1 font: $($Settings.h1)"
+                } else {
+                    Write-Warning "Font file not found: $fontPath"
+                }
+            }
+            $figlet = New-FigletText @figletParams
 
             # Create panel with internal padding calculated to fill terminal height
             # Account for rendering behavior to prevent scrolling
@@ -92,9 +116,21 @@ function Show-TitleSlide {
                 $panel.BorderStyle = [Spectre.Console.Style]::new($borderInfo.Color)
             }
             
-            # Add help text title for first slide
+            # Add help text header for first slide, otherwise pagination
             if ($IsFirstSlide) {
                 $panel.Header = [Spectre.Console.PanelHeader]::new("[grey39]press ? for help[/]")
+            } elseif ($Settings.pagination -eq $true) {
+                $paginationParams = @{
+                    CurrentSlide = $CurrentSlide
+                    TotalSlides = $TotalSlides
+                    Style = $Settings.paginationStyle
+                }
+                if ($borderInfo.Color) {
+                    $paginationParams['Color'] = $borderInfo.Color
+                }
+                $paginationText = Get-PaginationText @paginationParams
+                $panel.Header = [Spectre.Console.PanelHeader]::new($paginationText)
+                $panel.Header.Justification = [Spectre.Console.Justify]::Right
             }
             
             # Render panel

@@ -40,9 +40,9 @@ function ConvertFrom-DeckMarkdown {
             pagination      = $false
             paginationStyle = 'minimal'
             borderStyle     = 'rounded'
-            titleFont       = 'default'
-            sectionFont     = 'default'
-            headerFont      = 'default'
+            'h1'            = 'default'
+            'h2'            = 'default'
+            'h3'            = 'default'
         }
     }
 
@@ -50,14 +50,20 @@ function ConvertFrom-DeckMarkdown {
         try {
             # Read the entire file
             $content = Get-Content -Path $Path -Raw
+            $allLines = Get-Content -Path $Path
             
             # Extract YAML frontmatter
             $settings = $defaultSettings.Clone()
             $markdownContent = $content
+            $contentStartLine = 1
             
             if ($content -match '(?s)^---\s*\r?\n(.*?)\r?\n---\s*\r?\n(.*)$') {
                 $yamlContent = $Matches[1]
                 $markdownContent = $Matches[2]
+                
+                # Calculate how many lines the frontmatter takes
+                $frontmatterLines = ($yamlContent -split '\r?\n').Count + 2  # +2 for the --- delimiters
+                $contentStartLine = $frontmatterLines + 1
                 
                 Write-Verbose "Found YAML frontmatter, parsing settings"
                 
@@ -75,6 +81,19 @@ function ConvertFrom-DeckMarkdown {
                             $value = $true
                         } elseif ($value -eq 'false') {
                             $value = $false
+                        }
+                        
+                        # Normalize font property aliases to canonical names
+                        # titleFont/h1Font/h1 → h1, sectionFont/h2Font/h2 → h2, headerFont/h3Font/h3 → h3
+                        if ($key -in @('titleFont', 'h1Font')) {
+                            $key = 'h1'
+                            Write-Verbose "  Normalized font alias to: h1"
+                        } elseif ($key -in @('sectionFont', 'h2Font')) {
+                            $key = 'h2'
+                            Write-Verbose "  Normalized font alias to: h2"
+                        } elseif ($key -in @('headerFont', 'h3Font')) {
+                            $key = 'h3'
+                            Write-Verbose "  Normalized font alias to: h3"
                         }
                         
                         # Store in settings
@@ -127,9 +146,15 @@ function ConvertFrom-DeckMarkdown {
             # Filter out empty slides and trim whitespace
             $slides = @()
             $slideNumber = 1
+            $currentLineInContent = $contentStartLine
             
             foreach ($slideContent in $slideContents) {
                 $trimmed = $slideContent.Trim()
+                
+                # Calculate line number in original file for this slide
+                $slideStartLine = $currentLineInContent
+                $slideLineCount = ($slideContent -split '\r?\n').Count
+                $currentLineInContent += $slideLineCount + 1  # +1 for the delimiter line
                 
                 if ([string]::IsNullOrWhiteSpace($trimmed)) {
                     Write-Verbose "  Skipping empty slide section"
@@ -143,6 +168,7 @@ function ConvertFrom-DeckMarkdown {
                         Number          = $slideNumber
                         Content         = $trimmed
                         IsBlank         = $true
+                        LineNumber      = $slideStartLine
                     }
                     $slideNumber++
                     continue
@@ -150,10 +176,40 @@ function ConvertFrom-DeckMarkdown {
                 
                 Write-Verbose "  Slide $slideNumber : $(($trimmed -split '\r?\n')[0].Substring(0, [Math]::Min(50, ($trimmed -split '\r?\n')[0].Length)))..."
                 
+                # Parse pagination overrides from HTML comments (but not inside code blocks)
+                # First, temporarily replace code blocks with placeholders
+                $tempContent = $trimmed
+                $codeBlockMatches = [regex]::Matches($tempContent, '(?s)```.*?```')
+                $codeBlockPlaceholders = @{}
+                $placeholderIndex = 0
+                foreach ($match in $codeBlockMatches) {
+                    $placeholder = "___CODEBLOCK_PLACEHOLDER_${placeholderIndex}___"
+                    $codeBlockPlaceholders[$placeholder] = $match.Value
+                    $tempContent = $tempContent.Replace($match.Value, $placeholder)
+                    $placeholderIndex++
+                }
+                
+                # Now parse overrides from content without code blocks
+                $overrides = @{}
+                if ($tempContent -match '<!--\s*pagination:\s*(true|false)\s*-->') {
+                    $overrides['pagination'] = $Matches[1] -eq 'true'
+                    Write-Verbose "    Override: pagination = $($overrides['pagination'])"
+                }
+                if ($tempContent -match '<!--\s*paginationStyle:\s*(\w+)\s*-->') {
+                    $overrides['paginationStyle'] = $Matches[1]
+                    Write-Verbose "    Override: paginationStyle = $($overrides['paginationStyle'])"
+                }
+                
+                # Remove HTML comments from display content
+                $contentWithoutComments = $trimmed -replace '<!--\s*pagination:\s*(true|false)\s*-->\r?\n?', ''
+                $contentWithoutComments = $contentWithoutComments -replace '<!--\s*paginationStyle:\s*(\w+)\s*-->\r?\n?', ''
+                
                 $slides += [PSCustomObject]@{
                     Number          = $slideNumber
-                    Content         = $trimmed
+                    Content         = $contentWithoutComments
                     IsBlank         = $false
+                    LineNumber      = $slideStartLine
+                    Overrides       = $overrides
                 }
                 $slideNumber++
             }

@@ -5,7 +5,8 @@ function Show-SectionSlide {
 
     .DESCRIPTION
         Displays a full-screen section slide containing a ## heading rendered as medium
-        figlet text. Section slides are centered and use the configured sectionFont setting.
+        figlet text. Section slides are centered and use the configured h2 font setting
+        (also accepts aliases: sectionFont, h2Font).
 
     .PARAMETER Slide
         The slide object containing the content to render.
@@ -25,7 +26,13 @@ function Show-SectionSlide {
         [PSCustomObject]$Slide,
 
         [Parameter(Mandatory = $true)]
-        [hashtable]$Settings
+        [hashtable]$Settings,
+
+        [Parameter(Mandatory = $false)]
+        [int]$CurrentSlide = 1,
+
+        [Parameter(Mandatory = $false)]
+        [int]$TotalSlides = 1
     )
 
     begin {
@@ -46,9 +53,24 @@ function Show-SectionSlide {
             $figletColor = Get-SpectreColorFromSettings -ColorName $Settings.foreground -SettingName 'Figlet'
             $borderInfo = Get-BorderStyleFromSettings -Settings $Settings
 
-            # Create figlet text object with small font if available
-            $smallFontPath = Join-Path $PSScriptRoot '../Fonts/small.flf'
-            $figlet = New-FigletText -Text $sectionText -FontPath $smallFontPath -Color $figletColor -Justification Center
+            # Create figlet text object with optional font from settings
+            $figletParams = @{
+                Text = $sectionText
+                Color = $figletColor
+                Justification = 'Center'
+            }
+            # Default to 'small' font if h2 is 'default', otherwise use specified font
+            $fontName = if ($Settings.h2 -eq 'default') { 'small' } else { $Settings.h2 }
+            $fontPath = if (Test-Path $fontName) {
+                $fontName
+            } else {
+                Join-Path $PSScriptRoot "../Fonts/$fontName.flf"
+            }
+            if (Test-Path $fontPath) {
+                $figletParams['FontPath'] = $fontPath
+                Write-Verbose "  Using h2 font: $fontName"
+            }
+            $figlet = New-FigletText @figletParams
 
             # Create panel with internal padding calculated to fill terminal height
             # Account for rendering behavior to prevent scrolling
@@ -88,6 +110,21 @@ function Show-SectionSlide {
             # Add border color
             if ($borderInfo.Color) {
                 $panel.BorderStyle = [Spectre.Console.Style]::new($borderInfo.Color)
+            }
+            
+            # Add pagination header if enabled
+            if ($Settings.pagination -eq $true) {
+                $paginationParams = @{
+                    CurrentSlide = $CurrentSlide
+                    TotalSlides = $TotalSlides
+                    Style = $Settings.paginationStyle
+                }
+                if ($borderInfo.Color) {
+                    $paginationParams['Color'] = $borderInfo.Color
+                }
+                $paginationText = Get-PaginationText @paginationParams
+                $panel.Header = [Spectre.Console.PanelHeader]::new($paginationText)
+                $panel.Header.Justification = [Spectre.Console.Justify]::Right
             }
             
             # Render panel

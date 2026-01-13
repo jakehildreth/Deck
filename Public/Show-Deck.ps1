@@ -334,19 +334,28 @@ function Show-Deck {
                     $visibleBullets[$currentSlide] = 0
                 }
                 
+                # Merge slide-specific overrides with presentation settings
+                $slideSettings = $presentation.Settings.Clone()
+                if ($slide.PSObject.Properties['Overrides'] -and $slide.Overrides) {
+                    foreach ($key in $slide.Overrides.Keys) {
+                        $slideSettings[$key] = $slide.Overrides[$key]
+                        Write-Verbose "  Applied override: $key = $($slide.Overrides[$key])"
+                    }
+                }
+                
                 # Detect slide type based on content
                 if ($slide.Content -match '^\s*#\s+.+$' -and $slide.Content -notmatch '\n[^#]') {
                     # Title slide: Only has # heading, no other content
                     Write-Verbose "Rendering title slide $($currentSlide + 1)/$totalSlides"
-                    Show-TitleSlide -Slide $slide -Settings $presentation.Settings -IsFirstSlide:($currentSlide -eq 0)
+                    Show-TitleSlide -Slide $slide -Settings $slideSettings -IsFirstSlide:($currentSlide -eq 0) -CurrentSlide ($currentSlide + 1) -TotalSlides $totalSlides
                 } elseif ($slide.Content -match '^\s*##\s+.+$' -and $slide.Content -notmatch '\n[^#]') {
                     # Section slide: Only has ## heading, no other content
                     Write-Verbose "Rendering section slide $($currentSlide + 1)/$totalSlides"
-                    Show-SectionSlide -Slide $slide -Settings $presentation.Settings
+                    Show-SectionSlide -Slide $slide -Settings $slideSettings -CurrentSlide ($currentSlide + 1) -TotalSlides $totalSlides
                 } elseif ($slide.Content -match '\|\|\|') {
                     # Multi-column slide: Contains ||| delimiter
                     Write-Verbose "Rendering multi-column slide $($currentSlide + 1)/$totalSlides"
-                    Show-MultiColumnSlide -Slide $slide -Settings $presentation.Settings
+                    Show-MultiColumnSlide -Slide $slide -Settings $slideSettings -CurrentSlide ($currentSlide + 1) -TotalSlides $totalSlides
                 } elseif ($slide.Content -match '!\[[^\]]*\]\([^)]+\)' -and ($slide.Content -replace '!\[[^\]]*\]\([^)]+\)(?:\{width=\d+\})?', '').Trim().Length -gt 0) {
                     # Image slide: Contains an image AND has text content besides the image
                     # But first check if the image is inside a code block (skip if it's example code)
@@ -364,16 +373,16 @@ function Show-Deck {
                     if ($isInCodeBlock) {
                         # Treat as content slide since image is just example code
                         Write-Verbose "Rendering content slide $($currentSlide + 1)/$totalSlides with $($visibleBullets[$currentSlide]) bullets"
-                        Show-ContentSlide -Slide $slide -Settings $presentation.Settings -VisibleBullets $visibleBullets[$currentSlide]
+                        Show-ContentSlide -Slide $slide -Settings $slideSettings -VisibleBullets $visibleBullets[$currentSlide] -CurrentSlide ($currentSlide + 1) -TotalSlides $totalSlides
                     } else {
                         # Real image slide
                         Write-Verbose "Rendering image slide $($currentSlide + 1)/$totalSlides with $($visibleBullets[$currentSlide]) bullets"
-                        Show-ImageSlide -Slide $slide -Settings $presentation.Settings -VisibleBullets $visibleBullets[$currentSlide]
+                        Show-ImageSlide -Slide $slide -Settings $slideSettings -VisibleBullets $visibleBullets[$currentSlide] -CurrentSlide ($currentSlide + 1) -TotalSlides $totalSlides
                     }
                 } else {
                     # Content slide: May have ### heading or just content
                     Write-Verbose "Rendering content slide $($currentSlide + 1)/$totalSlides with $($visibleBullets[$currentSlide]) bullets"
-                    Show-ContentSlide -Slide $slide -Settings $presentation.Settings -VisibleBullets $visibleBullets[$currentSlide]
+                    Show-ContentSlide -Slide $slide -Settings $slideSettings -VisibleBullets $visibleBullets[$currentSlide] -CurrentSlide ($currentSlide + 1) -TotalSlides $totalSlides
                 }
 
                 # Get user input

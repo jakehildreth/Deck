@@ -26,7 +26,13 @@ function Show-MultiColumnSlide {
         [PSCustomObject]$Slide,
 
         [Parameter(Mandatory = $true)]
-        [hashtable]$Settings
+        [hashtable]$Settings,
+
+        [Parameter(Mandatory = $false)]
+        [int]$CurrentSlide = 1,
+
+        [Parameter(Mandatory = $false)]
+        [int]$TotalSlides = 1
     )
 
     begin {
@@ -76,9 +82,24 @@ function Show-MultiColumnSlide {
                 # Convert color name to Spectre.Console.Color
                 $figletColor = Get-SpectreColorFromSettings -ColorName $Settings.foreground -SettingName 'Header'
 
-                # Create figlet for header
-                $miniFontPath = Join-Path $PSScriptRoot '../Fonts/mini.flf'
-                $figlet = New-FigletText -Text $headerText -FontPath $miniFontPath -Color $figletColor -Justification Center
+                # Create figlet for header with optional font from settings
+                $figletParams = @{
+                    Text = $headerText
+                    Color = $figletColor
+                    Justification = 'Center'
+                }
+                # Default to 'mini' font if h3 is 'default', otherwise use specified font
+                $fontName = if ($Settings.h3 -eq 'default') { 'mini' } else { $Settings.h3 }
+                $fontPath = if (Test-Path $fontName) {
+                    $fontName
+                } else {
+                    Join-Path $PSScriptRoot "../Fonts/$fontName.flf"
+                }
+                if (Test-Path $fontPath) {
+                    $figletParams['FontPath'] = $fontPath
+                    Write-Verbose "  Using h3 font: $fontName"
+                }
+                $figlet = New-FigletText @figletParams
                 $renderables.Add($figlet)
             }
 
@@ -197,6 +218,21 @@ function Show-MultiColumnSlide {
             }
             if ($borderInfo.Color) {
                 $panel.BorderStyle = [Spectre.Console.Style]::new($borderInfo.Color)
+            }
+            
+            # Add pagination header if enabled
+            if ($Settings.pagination -eq $true) {
+                $paginationParams = @{
+                    CurrentSlide = $CurrentSlide
+                    TotalSlides = $TotalSlides
+                    Style = $Settings.paginationStyle
+                }
+                if ($borderInfo.Color) {
+                    $paginationParams['Color'] = $borderInfo.Color
+                }
+                $paginationText = Get-PaginationText @paginationParams
+                $panel.Header = [Spectre.Console.PanelHeader]::new($paginationText)
+                $panel.Header.Justification = [Spectre.Console.Justify]::Right
             }
             
             # Render panel

@@ -2,9 +2,16 @@
 background: Black
 foreground: Cyan1
 border: Blue
+h1: PressStart2P
+h2: Silkscreen
+h3: Micro5-Regular
+pagination: true
+paginationStyle: dots
 ---
 
 # Deck
+
+---
 
 ---
 
@@ -62,6 +69,7 @@ Your content here
 ```powershell
 Show-Deck -Path ./presentation.md
 ```
+
 That's it!
 
 ---
@@ -117,7 +125,7 @@ Great for lists and references.
 
 Deck supports inline formatting:
   
-```markdown
+```markdownShow-Deck ./Examples/OverrideDebugTest.md
 **Bold text** or __also bold__
 *Italic text* or _also italic_
 `Inline code` for technical terms
@@ -191,8 +199,27 @@ background: Black
 foreground: Cyan1
 border: Magenta
 borderStyle: rounded
+h1: PressStart2P
+h2: Silkscreen
+h3: Micro5-Regular
+pagination: true
+paginationStyle: minimal
 ---
 ```
+
+---
+<!-- paginationStyle: fraction -->
+### Per-Slide Overrides
+
+Override settings per-slide using HTML comments:
+
+```markdown
+<!-- pagination: false -->
+<!-- paginationStyle: progress -->
+<!-- background: #1a1a1a -->
+```
+
+This slide uses `paginationStyle: fraction` override!
 
 ---
 

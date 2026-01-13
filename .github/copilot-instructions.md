@@ -11,6 +11,14 @@ All PowerShell code in this project must follow OTBS:
 - `else`, `elseif`, `catch`, and `finally` keywords on same line as closing brace: `} else {`, `} elseif {`, `} catch {`, `} finally {`
 - Never put these keywords on their own line after a closing brace
 
+### Markdown Parsing Rules
+**ALWAYS skip parsing markup inside code:**
+- Inline code blocks (backticks: `` `code` ``)
+- Code fences (triple backticks: ``` ```code``` ```)
+- When parsing HTML comments, regex patterns, or any markup, temporarily replace code blocks with placeholders before parsing
+- Restore code blocks after parsing is complete
+- Never match or parse content that appears inside code examples
+
 ## Module Overview
 
 ### Purpose
@@ -40,9 +48,9 @@ footer: "© 2026"           # Optional footer text
 pagination: false          # Show slide numbers (default: false)
 paginationStyle: minimal   # Style: minimal, fraction, text, progress, dots
 borderStyle: rounded       # Style: rounded, square, double, heavy, none
-titleFont: default         # Figlet font for Title slides
-sectionFont: default       # Figlet font for Section slides
-headerFont: default        # Figlet font for slide headers
+h1Font: default            # Figlet font for # (title slides)
+h2Font: default            # Figlet font for ## (section slides)
+h3Font: default            # Figlet font for ### (content headers)
 ---
 ```
 
@@ -271,16 +279,18 @@ Deck/
 - [x] **Test** — Display presentation with Title, Section, and 1-column slides
 
 ### Phase 5: Advanced Slide Types
-- [ ] **2-column slide renderer** — Implement two-column layout
-- [ ] **Left/Right slide renderers** — Implement image-based layouts
-- [ ] **Test** — Display presentation with all slide types
+- [x] **Multi-column slide renderer** — Implement multi-column layout with ||| delimiter
+- [x] **Image slide renderers** — Implement image-based layouts (left/right 60/40 split)
+- [x] **Test** — Display presentation with all slide types
 
 ### Phase 6: Full Navigation
 - [x] **Complete navigation** — Implement all navigation keys (arrows, space, enter, n/p, page up/down)
 - [x] **Bullet reveal** — Implement progressive bullet point reveal for `*` items
 - [x] **Backward bullet navigation** — Hide bullets when navigating backward
-- [ ] **Content scrolling** — Implement smart scrolling for overflow content
 - [x] **Test** — Verify navigation key handlers (77 tests passing)
+
+**Future Enhancement:**
+- Content scrolling for overflow (Up/Down arrows scroll within slide when content exceeds viewport, navigate at boundaries)
 
 ### Phase 6.5: Visual Polish
 - [x] **Full-height borders** — All slide types fill terminal viewport
@@ -291,11 +301,12 @@ Deck/
 - [x] **Help screen** — Press ? to show navigation controls
 
 ### Phase 7: Validation & Polish
-- [ ] **Image validation** — Implement pre-load validation with -Strict mode
-- [ ] **Empty slide handling** — Interactive prompt with markdown file modification
-- [ ] **Markdown formatting** — Implement bold, italic, inline code, strikethrough conversion
-- [ ] **Code blocks** — Implement syntax highlighting support
-- [ ] **Test** — Verify all validation and formatting features
+- [x] **Image validation** — Implement pre-load validation with -Strict mode
+- [x] **Empty slide handling** — Auto-skip empty slides, support `<!-- intentionally blank -->` comment
+- [x] **Markdown formatting** — Implement bold, italic, inline code, strikethrough conversion
+- [x] **Code blocks** — Implement syntax highlighting support
+- [x] **Color support** — Implement `<colorname>text</colorname>` and `<span style="color:name">` tags
+- [x] **Test** — Verify markdown formatting and code block features
 
 ### Phase 8: Watch Mode
 - [ ] **File watcher** — Implement -Watch parameter with FileSystemWatcher
@@ -309,5 +320,5 @@ Deck/
 
 ### Phase 10: Documentation & Examples
 - [ ] **Comment-based help** — Complete help for both cmdlets
-- [ ] **Example presentations** — Create sample markdown files demonstrating all features
-- [ ] **README** — Write comprehensive project documentation
+- [x] **Example presentations** — Create sample markdown files demonstrating all features
+- [x] **README** — Write comprehensive project documentation

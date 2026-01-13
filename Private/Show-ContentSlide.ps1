@@ -6,6 +6,7 @@ function Show-ContentSlide {
     .DESCRIPTION
         Displays a content slide that may contain a ### heading rendered as smaller
         figlet text followed by content. If no ### heading is present, only content is shown.
+        Content headers use the configured h3 font setting (also accepts aliases: headerFont, h3Font).
 
     .PARAMETER Slide
         The slide object containing the content to render.
@@ -34,7 +35,13 @@ function Show-ContentSlide {
         [hashtable]$Settings,
 
         [Parameter(Mandatory = $false)]
-        [int]$VisibleBullets = [int]::MaxValue
+        [int]$VisibleBullets = [int]::MaxValue,
+
+        [Parameter(Mandatory = $false)]
+        [int]$CurrentSlide = 1,
+
+        [Parameter(Mandatory = $false)]
+        [int]$TotalSlides = 1
     )
 
     begin {
@@ -201,7 +208,24 @@ function Show-ContentSlide {
             
             # Add header figlet if present
             if ($hasHeader) {
-                $figlet = New-FigletText -Text $headerText -FontPath (Join-Path $PSScriptRoot '../Fonts/mini.flf') -Color $figletColor -Justification Center
+                # Create header figlet with optional font from settings
+                $figletParams = @{
+                    Text = $headerText
+                    Color = $figletColor
+                    Justification = 'Center'
+                }
+                # Default to 'mini' font if h3 is 'default', otherwise use specified font
+                $fontName = if ($Settings.h3 -eq 'default') { 'mini' } else { $Settings.h3 }
+                $fontPath = if (Test-Path $fontName) {
+                    $fontName
+                } else {
+                    Join-Path $PSScriptRoot "../Fonts/$fontName.flf"
+                }
+                if (Test-Path $fontPath) {
+                    $figletParams['FontPath'] = $fontPath
+                    Write-Verbose "  Using h3 font: $fontName"
+                }
+                $figlet = New-FigletText @figletParams
                 $renderables.Add($figlet)
             }
 
@@ -344,6 +368,21 @@ function Show-ContentSlide {
             }
             if ($borderInfo.Color) {
                 $panel.BorderStyle = [Spectre.Console.Style]::new($borderInfo.Color)
+            }
+            
+            # Add pagination header if enabled
+            if ($Settings.pagination -eq $true) {
+                $paginationParams = @{
+                    CurrentSlide = $CurrentSlide
+                    TotalSlides = $TotalSlides
+                    Style = $Settings.paginationStyle
+                }
+                if ($borderInfo.Color) {
+                    $paginationParams['Color'] = $borderInfo.Color
+                }
+                $paginationText = Get-PaginationText @paginationParams
+                $panel.Header = [Spectre.Console.PanelHeader]::new($paginationText)
+                $panel.Header.Justification = [Spectre.Console.Justify]::Right
             }
             
             # Render panel

@@ -36,7 +36,13 @@ function Show-ImageSlide {
         [hashtable]$Settings,
 
         [Parameter(Mandatory = $false)]
-        [int]$VisibleBullets = [int]::MaxValue
+        [int]$VisibleBullets = [int]::MaxValue,
+
+        [Parameter(Mandatory = $false)]
+        [int]$CurrentSlide = 1,
+
+        [Parameter(Mandatory = $false)]
+        [int]$TotalSlides = 1
     )
 
     begin {
@@ -96,7 +102,24 @@ function Show-ImageSlide {
             
             # Add header figlet if present
             if ($hasHeader) {
-                $figlet = New-FigletText -Text $headerText -FontPath (Join-Path $PSScriptRoot '../Fonts/mini.flf') -Color $figletColor -Justification Left
+                # Create figlet for header with optional font from settings
+                $figletParams = @{
+                    Text = $headerText
+                    Color = $figletColor
+                    Justification = 'Left'
+                }
+                # Default to 'mini' font if h3 is 'default', otherwise use specified font
+                $fontName = if ($Settings.h3 -eq 'default') { 'mini' } else { $Settings.h3 }
+                $fontPath = if (Test-Path $fontName) {
+                    $fontName
+                } else {
+                    Join-Path $PSScriptRoot "../Fonts/$fontName.flf"
+                }
+                if (Test-Path $fontPath) {
+                    $figletParams['FontPath'] = $fontPath
+                    Write-Verbose "  Using h3 font: $fontName"
+                }
+                $figlet = New-FigletText @figletParams
                 $leftRenderables.Add($figlet)
             }
 
@@ -368,8 +391,30 @@ function Show-ImageSlide {
             
             $grid.AddRow($leftPanel, $rightPanel) | Out-Null
 
-            # Render directly (no outer padding needed - panels fill viewport)
-            Out-SpectreHost $grid
+            # Wrap grid in a panel if pagination is enabled, otherwise render directly
+            if ($Settings.pagination -eq $true) {
+                $outerPanel = [Spectre.Console.Panel]::new($grid)
+                $outerPanel.Expand = $true
+                $outerPanel.Padding = [Spectre.Console.Padding]::new(0, 0, 0, 0)
+                $outerPanel.Border = [Spectre.Console.BoxBorder]::None
+                
+                $paginationParams = @{
+                    CurrentSlide = $CurrentSlide
+                    TotalSlides = $TotalSlides
+                    Style = $Settings.paginationStyle
+                }
+                if ($borderInfo.Color) {
+                    $paginationParams['Color'] = $borderInfo.Color
+                }
+                $paginationText = Get-PaginationText @paginationParams
+                $outerPanel.Header = [Spectre.Console.PanelHeader]::new($paginationText)
+                $outerPanel.Header.Justification = [Spectre.Console.Justify]::Right
+                
+                Out-SpectreHost $outerPanel
+            } else {
+                # Render directly (no outer padding needed - panels fill viewport)
+                Out-SpectreHost $grid
+            }
         } catch {
             $errorRecord = [System.Management.Automation.ErrorRecord]::new(
                 $_.Exception,
