@@ -43,6 +43,9 @@ function ConvertFrom-DeckMarkdown {
             'h1'            = 'default'
             'h2'            = 'default'
             'h3'            = 'default'
+            'h1Color'       = $null
+            'h2Color'       = $null
+            'h3Color'       = $null
         }
     }
 
@@ -94,6 +97,19 @@ function ConvertFrom-DeckMarkdown {
                         } elseif ($key -in @('headerFont', 'h3Font')) {
                             $key = 'h3'
                             Write-Verbose "  Normalized font alias to: h3"
+                        }
+                        
+                        # Normalize color property aliases
+                        # titleColor/h1FontColor/h1Color → h1Color, etc.
+                        if ($key -in @('titleColor', 'h1FontColor')) {
+                            $key = 'h1Color'
+                            Write-Verbose "  Normalized color alias to: h1Color"
+                        } elseif ($key -in @('sectionColor', 'h2FontColor')) {
+                            $key = 'h2Color'
+                            Write-Verbose "  Normalized color alias to: h2Color"
+                        } elseif ($key -in @('headerColor', 'h3FontColor')) {
+                            $key = 'h3Color'
+                            Write-Verbose "  Normalized color alias to: h3Color"
                         }
                         
                         # Store in settings

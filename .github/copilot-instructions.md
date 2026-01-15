@@ -71,14 +71,16 @@ Auto-detect slide type based on content, with optional override via `<!-- type: 
 | `right` | Has image positioned on right |
 
 ### Content Rules
-- `#` — Title slide heading (large figlet text, full screen)
-- `##` — Section slide heading (medium figlet text, full screen)
+- `#` — Title slide heading (large figlet text, full screen) - **Cannot have additional content**
+- `##` — Section slide heading (medium figlet text, full screen) - **Cannot have additional content**
 - `###` — Regular slide header (smaller figlet text above content)
 - `*` item — Bullet points revealed one at a time
 - `-` item — Bullet points shown all at once
 - Regular text — Displayed as paragraphs
 - `![alt](path)` — Images for Left/Right slide layouts
 - Fenced code blocks — Syntax highlighted when language specified
+
+**Important:** Title (`#`) and Section (`##`) slides must contain ONLY the heading text with no additional content. Use `###` headings for slides that need both a header and body content.
 
 ### Per-Slide Overrides
 Use HTML comments to override settings for individual slides:

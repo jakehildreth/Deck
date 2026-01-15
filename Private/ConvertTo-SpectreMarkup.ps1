@@ -39,17 +39,20 @@ function ConvertTo-SpectreMarkup {
         $result = $result -replace '!\[([^\]]*)\]\(([^)]+)\)(\{width=\d+\})?', '![[${1}]]($2)$3'
 
         # Convert code blocks FIRST (backticks) to protect code from other formatting
-        # Inline code: `code` -> [grey on grey15]escaped_code[/]
-        # Escape angle brackets in code to prevent them being parsed as HTML/color tags
+        # Use placeholders to prevent color tag regex from matching code content
+        $codeBlocks = @{}
+        $codeIndex = 0
         $result = [regex]::Replace($result, '`([^`]+)`', {
             param($match)
             $codeContent = $match.Groups[1].Value
-            # Escape angle brackets and square brackets
-            $codeContent = $codeContent -replace '<', '&lt;'
-            $codeContent = $codeContent -replace '>', '&gt;'
-            $codeContent = $codeContent -replace '\[', '&#91;'
-            $codeContent = $codeContent -replace '\]', '&#93;'
-            "[grey on grey15]$codeContent[/]"
+            # Use Spectre's built-in escaping
+            $escapedContent = [Spectre.Console.Markup]::Escape($codeContent)
+            $codeMarkup = "[grey on grey15]$escapedContent[/]"
+            # Store in placeholder
+            $placeholder = "___INLINECODE_${codeIndex}___"
+            $codeBlocks[$placeholder] = $codeMarkup
+            $codeIndex++
+            return $placeholder
         })
 
         # Convert HTML color tags to Spectre markup
@@ -70,6 +73,11 @@ function ConvertTo-SpectreMarkup {
 
         # Strikethrough: ~~text~~ -> [strikethrough]text[/]
         $result = $result -replace '~~([^~]+)~~', '[strikethrough]$1[/]'
+
+        # Restore code block placeholders
+        foreach ($placeholder in $codeBlocks.Keys) {
+            $result = $result.Replace($placeholder, $codeBlocks[$placeholder])
+        }
 
         return $result
     }

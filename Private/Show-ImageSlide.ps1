@@ -81,6 +81,20 @@ function Show-ImageSlide {
                 $headerText = $Matches[1].Trim()
                 Write-Verbose "  Header: $headerText"
                 
+                # Check for color tags in heading text and extract color
+                $headingColor = $null
+                if ($headerText -match '<(\w+)>.*?</\1>') {
+                    $headingColor = $Matches[1]
+                    Write-Verbose "  Extracted color from tag: $headingColor"
+                } elseif ($headerText -match "<span\s+style=['""]color:(\w+)['""]>.*?</span>") {
+                    $headingColor = $Matches[1]
+                    Write-Verbose "  Extracted color from span: $headingColor"
+                }
+                
+                # Strip HTML tags from header text
+                $headerText = $headerText -replace "<span\s+style=['""]color:\w+['""]>(.*?)</span>", '$1'
+                $headerText = $headerText -replace '<(\w+)>(.*?)</\1>', '$2'
+                
                 # Extract content after header
                 $bodyContent = $textContent -replace '^###\s+.+?(\r?\n|$)', ''
                 $bodyContent = $bodyContent.Trim()
@@ -91,7 +105,14 @@ function Show-ImageSlide {
 
             # Get border and colors
             $borderInfo = Get-BorderStyleFromSettings -Settings $Settings
-            $figletColor = Get-SpectreColorFromSettings -ColorName $Settings.foreground -SettingName 'Figlet'
+            $colorName = if ($hasHeader -and $headingColor) { 
+                $headingColor 
+            } elseif ($Settings.h3Color) { 
+                $Settings.h3Color 
+            } else { 
+                $Settings.foreground 
+            }
+            $figletColor = Get-SpectreColorFromSettings -ColorName $colorName -SettingName 'Figlet'
 
             # Calculate column widths (60% text, 40% image)
             $contentWidth = [math]::Floor($windowWidth * 0.6)

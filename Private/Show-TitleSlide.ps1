@@ -48,8 +48,29 @@ function Show-TitleSlide {
                 throw "Title slide does not contain a valid # heading"
             }
 
+            # Check for color tags in heading text and extract color
+            $headingColor = $null
+            if ($titleText -match '<(\w+)>.*?</\1>') {
+                $headingColor = $Matches[1]
+                Write-Verbose "  Extracted color from tag: $headingColor"
+            } elseif ($titleText -match "<span\s+style=['""]color:(\w+)['""]>.*?</span>") {
+                $headingColor = $Matches[1]
+                Write-Verbose "  Extracted color from span: $headingColor"
+            }
+            
+            # Strip HTML tags from title text
+            $titleText = $titleText -replace "<span\s+style=['""]color:\w+['""]>(.*?)</span>", '$1'
+            $titleText = $titleText -replace '<(\w+)>(.*?)</\1>', '$2'
+
             # Get colors and styles from settings
-            $figletColor = Get-SpectreColorFromSettings -ColorName $Settings.foreground -SettingName 'Figlet'
+            $colorName = if ($headingColor) { 
+                $headingColor 
+            } elseif ($Settings.h1Color) { 
+                $Settings.h1Color 
+            } else { 
+                $Settings.foreground 
+            }
+            $figletColor = Get-SpectreColorFromSettings -ColorName $colorName -SettingName 'Figlet'
             $borderInfo = Get-BorderStyleFromSettings -Settings $Settings
 
             # Create figlet text object with optional font from settings

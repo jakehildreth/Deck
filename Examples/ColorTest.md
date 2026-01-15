@@ -3,6 +3,14 @@ background: black
 foreground: white
 border: cyan
 borderStyle: rounded
+h1: PressStart2P
+h2: Silkscreen
+h3: Micro5-Regular
+h1Color: cyan
+h2Color: yellow
+h3Color: green
+pagination: true
+paginationStyle: minimal
 ---
 
 # Color Test
