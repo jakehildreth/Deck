@@ -5,13 +5,14 @@ border: Blue
 h1: PressStart2P
 h2: Silkscreen
 h3: Micro5-Regular
+h1Color: cyan
+h2Color: yellow
+h3Color: green
 pagination: true
 paginationStyle: dots
 ---
 
 # Deck
-
----
 
 ---
 
@@ -56,6 +57,7 @@ Create a Markdown file with your content:
 ---
 
 ## Section Title
+
 ---
 
 ### Slide with Content
@@ -74,7 +76,7 @@ That's it!
 
 ---
 
-## Key Features
+## Basic Features
 
 ---
 
@@ -87,13 +89,27 @@ That's it!
 
 ---
 
-### Image Slides
+### Markdown Formatting
 
-Two-panel layout with text content and image side-by-side.
+Deck supports inline formatting:
+  
+```markdown
+**Bold text** or __also bold__
+*Italic text* or _also italic_
+`Inline code` for technical terms
+~~Strikethrough~~ for corrections
+<red>Colored text</red> using HTML tags
+```
 
-Images auto-size to fit. Use `{width=N}` to set max width.
+|||
 
-![PowerShell Logo](https://raw.githubusercontent.com/PowerShell/PowerShell/master/assets/Powershell_256.png)
+Renders as:
+  
+**Bold text** or __also bold__
+*Italic text* or _also italic_
+`Inline code` for technical terms
+~~Strikethrough~~ for corrections
+<red>Colored text</red> using HTML tags
 
 ---
 
@@ -121,30 +137,7 @@ Great for lists and references.
 
 ---
 
-### Markdown Formatting
-
-Deck supports inline formatting:
-  
-```markdownShow-Deck ./Examples/OverrideDebugTest.md
-**Bold text** or __also bold__
-*Italic text* or _also italic_
-`Inline code` for technical terms
-~~Strikethrough~~ for corrections
-<red>Colored text</red> using HTML tags
-```
-
-|||
-
-
-  
-Renders as:
-  
-  
-**Bold text** or __also bold__
-*Italic text* or _also italic_
-`Inline code` for technical terms
-~~Strikethrough~~ for corrections
-<red>Colored text</red> using HTML tags
+## Advanced Features
 
 ---
 
@@ -171,6 +164,42 @@ Syntax examples:
 
 ---
 
+# <red>Colored Titles!</red>
+
+---
+
+## <magenta>Colored Sections!</magenta>
+
+---
+
+### Inline Heading Colors
+
+You can add colors directly to headings using HTML tags:
+
+```markdown
+# <red>Red Title</red>
+## <cyan>Cyan Section</cyan>
+### <green>Green Header</green>
+```
+
+Both formats work:
+- Simple: `<colorname>text</colorname>`
+- HTML: `<span style="color:name">text</span>`
+
+Color priority: inline tags > frontmatter settings > foreground
+
+---
+
+### Image Slides
+
+Two-panel layout with text content and image side-by-side.
+
+Images auto-size to fit. Use `{width=N}` to set max width.
+
+![PowerShell Logo](https://raw.githubusercontent.com/PowerShell/PowerShell/master/assets/Powershell_256.png)
+
+---
+
 ### Multi-Column Layouts
 
 Split content into columns using three pipes.
@@ -189,7 +218,11 @@ Fourth column with `code` formatting.
 
 ---
 
-### Customization
+## Customization
+
+---
+
+### Appearance Settings
 
 Configure appearance in frontmatter:
 
@@ -199,9 +232,12 @@ background: Black
 foreground: Cyan1
 border: Magenta
 borderStyle: rounded
-h1: PressStart2P
-h2: Silkscreen
-h3: Micro5-Regular
+h1: PressStart2P          # Font aliases: titleFont, h1Font
+h2: Silkscreen            # Font aliases: sectionFont, h2Font
+h3: Micro5-Regular        # Font aliases: headerFont, h3Font
+h1Color: red              # Color aliases: titleColor, h1FontColor
+h2Color: cyan             # Color aliases: sectionColor, h2FontColor
+h3Color: green            # Color aliases: headerColor, h3FontColor
 pagination: true
 paginationStyle: minimal
 ---
@@ -240,7 +276,7 @@ This slide uses `paginationStyle: fraction` override!
 
 GitHub: github.com/jakehildreth/Deck
 
-        Built with:
-        - PowerShell
-        - PwshSpectreConsole
-        - <3
+          Built with
+          PowerShell
+      PwshSpectreConsole
+              <darkmagenta><3</darkmagenta>

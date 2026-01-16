@@ -144,11 +144,36 @@ border: magenta            # Border color
 borderStyle: rounded       # rounded, square, double, heavy, none
 pagination: false          # Show slide numbers
 paginationStyle: minimal   # minimal, fraction, text, progress, dots
-titleFont: default         # Figlet font for titles
-sectionFont: default       # Figlet font for sections
-headerFont: default        # Figlet font for headers
+h1: default                # Figlet font for # titles (aliases: titleFont, h1Font)
+h2: default                # Figlet font for ## sections (aliases: sectionFont, h2Font)
+h3: default                # Figlet font for ### headers (aliases: headerFont, h3Font)
+h1Color: null              # Color for # titles (aliases: titleColor, h1FontColor)
+h2Color: null              # Color for ## sections (aliases: sectionColor, h2FontColor)
+h3Color: null              # Color for ### headers (aliases: headerColor, h3FontColor)
 ---
 ```
+
+#### Heading Colors
+
+Heading colors can be specified three ways:
+
+1. **Inline HTML tags** (highest priority):
+```markdown
+# <red>Red Title</red>
+## <cyan>Cyan Section</cyan>
+### <green>Green Header</green>
+```
+
+2. **Frontmatter settings**:
+```yaml
+h1Color: red
+h2Color: cyan
+h3Color: green
+```
+
+3. **Foreground fallback** (if neither above is specified)
+
+Both `<colorname>text</colorname>` and `<span style="color:colorname">text</span>` syntax are supported.
 
 ## Examples
 
@@ -159,7 +184,8 @@ Show-Deck -Path ./Examples/ExampleDeck.md
 ```
 
 Additional examples:
-- [Examples/ColorTest.md](Examples/ColorTest.md) - Color text examples
+- [Examples/ColorTest.md](Examples/ColorTest.md) - Inline color text examples
+- [Examples/HeadingColorsTest.md](Examples/HeadingColorsTest.md) - Heading color examples
 - [Examples/ImageTest.md](Examples/ImageTest.md) - Image slide layouts
 - [Examples/MultiColumnTest.md](Examples/MultiColumnTest.md) - Multi-column layouts
 - [Examples/BulletTest.md](Examples/BulletTest.md) - Bullet reveal behavior

@@ -208,7 +208,14 @@ function Show-ContentSlide {
                 # Store the max line length of all content for consistent horizontal alignment
                 if (-not $Slide.PSObject.Properties['MaxLineLength']) {
                     $lines = $bodyContent -split "`r?`n"
-                    $maxLength = ($lines | Measure-Object -Property Length -Maximum).Maximum
+                    # Strip HTML color tags before measuring length (rendered length, not raw)
+                    $maxLength = ($lines | ForEach-Object {
+                        # Remove <colorname>text</colorname> tags
+                        $stripped = $_ -replace '<([a-zA-Z][a-zA-Z0-9]*)>(.*?)</\1>', '$2'
+                        # Remove <span style="color:colorname">text</span> tags
+                        $stripped = $stripped -replace '<span\s+style=[''"]color:\s*([a-zA-Z][a-zA-Z0-9]*)[''"]>(.*?)</span>', '$2'
+                        $stripped.Length
+                    } | Measure-Object -Maximum).Maximum
                     Add-Member -InputObject $Slide -NotePropertyName 'MaxLineLength' -NotePropertyValue $maxLength -Force
                 }
             }

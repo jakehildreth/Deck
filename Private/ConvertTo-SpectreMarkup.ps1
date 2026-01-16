@@ -57,10 +57,10 @@ function ConvertTo-SpectreMarkup {
 
         # Convert HTML color tags to Spectre markup
         # <span style="color:colorname">text</span> -> [colorname]text[/]
-        $result = $result -replace '<span\s+style=[''"]color:\s*([a-zA-Z][a-zA-Z0-9]*)[''"]>([^<]*?)</span>', '[$1]$2[/]'
+        $result = $result -replace '<span\s+style=[''"]color:\s*([a-zA-Z][a-zA-Z0-9]*)[''"]>(.*?)</span>', '[$1]$2[/]'
         
         # Convert simple color tags: <colorname>text</colorname> -> [colorname]text[/]
-        $result = $result -replace '<([a-zA-Z][a-zA-Z0-9]*)>([^<]*?)</\1>', '[$1]$2[/]'
+        $result = $result -replace '<([a-zA-Z][a-zA-Z0-9]*)>(.*?)</\1>', '[$1]$2[/]'
 
         # Bold: **text** or __text__ -> [bold]text[/]
         $result = $result -replace '\*\*([^\*]+)\*\*', '[bold]$1[/]'
