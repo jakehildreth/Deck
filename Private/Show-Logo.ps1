@@ -2119,3 +2119,4 @@ Write-Host
 Write-Host "Try it out now:"
 Write-Host 
 Write-Host "PS> Show-Deck -Path https://raw.githubusercontent.com/jakehildreth/Deck/main/Examples/ExampleDeck.md"
+}

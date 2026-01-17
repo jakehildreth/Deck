@@ -310,17 +310,161 @@ Deck/
 - [x] **Color support** — Implement `<colorname>text</colorname>` and `<span style="color:name">` tags
 - [x] **Test** — Verify markdown formatting and code block features
 
+### Phase 7.5: Documentation
+- [x] **Comment-based help** — Comprehensive help for all 18 functions with 3-5 examples each
+- [x] **Example presentations** — Create sample markdown files demonstrating all features
+- [x] **README** — Write comprehensive project documentation
+
 ### Phase 8: Watch Mode
 - [ ] **File watcher** — Implement -Watch parameter with FileSystemWatcher
 - [ ] **Auto-reload** — Reload and re-render on file changes with position preservation
 - [ ] **Test** — Edit markdown file while watching and verify reload behavior
 
 ### Phase 9: Export Functionality
-- [ ] **Export-Slides cmdlet** — Implement standalone script generation
+- [ ] **Export-Deck cmdlet** — Implement standalone script generation
 - [ ] **Embedded dependencies** — Ensure exported script is self-contained
 - [ ] **Test** — Generate and run exported presentation script
 
-### Phase 10: Documentation & Examples
-- [ ] **Comment-based help** — Complete help for both cmdlets
-- [x] **Example presentations** — Create sample markdown files demonstrating all features
-- [x] **README** — Write comprehensive project documentation
+### Phase 10: Presenter Mode
+- [ ] **Dual window support** — Launch presenter and audience windows
+- [ ] **Notes parsing** — Extract presenter notes from `<!-- [NOTES] -->` blocks
+- [ ] **Next slide preview** — Show upcoming slide content in presenter view
+- [ ] **Presenter display** — Current slide notes + next slide preview in split-pane layout
+- [ ] **Synchronized navigation** — Control main presentation from presenter window
+- [ ] **Timer display** — Elapsed time display in presenter view
+- [ ] **Test** — Verify dual-window control and note display
+
+#### Presenter Mode Specifications
+
+**Activation:**
+```powershell
+Show-Deck -Path presentation.md -PresenterMode
+```
+
+**Notes Syntax:**
+```markdown
+### Slide Title
+
+Content for the slide
+
+<!-- [NOTES]
+Remember to mention the key point here.
+Ask if there are questions about this topic.
+Transition smoothly to the next section.
+Demo the live feature if time permits.
+-->
+```
+
+**Presenter Window Layout:**
+
+```
+┌─ Deck Presenter View ─────────────────────────────────────────────────────────┐
+│ Slide 3 of 10                                      Elapsed: [00:05:32]        │
+├───────────────────────────────────┬───────────────────────────────────────────┤
+│ Current Slide Notes:              │ Next Slide Preview:                       │
+│                                   │                                           │
+│ Remember to mention the key       │  ### Implementation Details               │
+│ point here.                       │                                           │
+│                                   │  * First implementation step              │
+│ Ask if there are questions about  │  * Second implementation step             │
+│ this topic.                       │  * Third implementation step              │
+│                                   │                                           │
+│ Transition smoothly to the next   │  ```powershell                            │
+│ section.                          │  Get-Process | Where CPU -gt 100          │
+│                                   │  ```                                      │
+│ Demo the live feature if time     │                                           │
+│ permits.                          │                                           │
+│                                   │                                           │
+└───────────────────────────────────┴───────────────────────────────────────────┘
+Navigation: ← → (navigate) | ESC (exit) | ? (help)
+```
+
+**Notes Format:**
+- Use `<!-- [NOTES] ... -->` HTML comment blocks
+- Place at the end of each slide (after content)
+- Content can be free-form text (not required to be bullets)
+- Notes are parsed and displayed as-is in presenter window
+- Notes are never visible in audience view
+
+**Layout:**
+- Top bar: Slide counter and elapsed timer
+- Left pane (50%): Current slide notes in plain text format
+- Right pane (50%): Next slide preview showing final state (all bullets visible)
+- Bottom: Navigation key hints
+
+**Requirements:**
+- Presenter window controls both displays
+- Navigation in presenter window advances both views
+- Notes persist across slide changes (no progressive reveal)
+- Next slide preview shows final state (all bullets visible)
+- Timer starts when presentation begins
+- Both windows close on exit from either window
+- Graceful fallback if dual terminals not supported
+
+#### Technical Implementation: Named Pipes IPC
+
+**Approach:** Use System.IO.Pipes.NamedPipeServerStream for inter-process communication
+
+**Why Named Pipes:**
+- Cross-platform in .NET 8 (PowerShell 7.4+)
+  - Windows: Native named pipes
+  - Linux/macOS: Unix domain sockets (seamless)
+- Low latency (< 1ms)
+- Built-in message framing
+- Connection-oriented (detect disconnection)
+- Automatic cleanup on process termination
+- No port management or firewall concerns
+
+**Architecture:**
+```
+Presenter Window (Server/Controller)
+├── Named Pipe Server: "Deck_$PID"
+├── Slide state tracking
+├── Navigation input handling
+└── Sends: { Command: "NextSlide", SlideNum: 5, Timestamp: ... }
+
+Audience Window (Client/Follower)
+├── Named Pipe Client connects to "Deck_$PID"
+├── Non-blocking read loop
+├── Slide rendering
+└── Receives commands and updates display
+```
+
+**Implementation Files:**
+- `Private/Start-PresenterPipe.ps1` - Create named pipe server
+- `Private/Connect-AudiencePipe.ps1` - Connect as pipe client
+- `Private/Send-NavigationEvent.ps1` - Write JSON commands to pipe
+- `Private/Receive-NavigationEvent.ps1` - Non-blocking read from pipe
+- Update `Show-Deck.ps1` - Add `-PresenterMode`, `-AudienceMode`, `-PipeName` parameters
+
+**Sample Implementation:**
+```powershell
+# Presenter starts server and launches audience window
+$pipeName = "Deck_$PID"
+$pipe = [System.IO.Pipes.NamedPipeServerStream]::new(
+    $pipeName,
+    [System.IO.Pipes.PipeDirection]::InOut,
+    1,
+    [System.IO.Pipes.PipeTransmissionMode]::Message
+)
+
+# Launch audience window
+Start-Process pwsh -ArgumentList @(
+    "-NoProfile"
+    "-Command"
+    "Show-Deck -Path '$Path' -AudienceMode -PipeName '$pipeName'"
+)
+
+# Wait for connection
+$pipe.WaitForConnectionAsync().Wait()
+$writer = [System.IO.StreamWriter]::new($pipe)
+$writer.AutoFlush = $true
+
+# Send navigation commands
+$writer.WriteLine((@{ Command = 'NextSlide'; Slide = 5 } | ConvertTo-Json))
+```
+
+**Error Handling:**
+- Connection timeout (5 seconds) if audience fails to connect
+- Pipe disconnection detection → close both windows
+- Process exit monitoring → cleanup and terminate peer
