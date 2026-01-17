@@ -272,11 +272,11 @@ This slide uses `paginationStyle: fraction` override!
 
 ---
 
-### Learn More
+### Learn More!
 
 GitHub: github.com/jakehildreth/Deck
 
-          Built with
-          PowerShell
-      PwshSpectreConsole
-              <darkmagenta><3</darkmagenta>
+              Built with
+              PowerShell
+          PwshSpectreConsole
+                  <darkmagenta><3</darkmagenta>

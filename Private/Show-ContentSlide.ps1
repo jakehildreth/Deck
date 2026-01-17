@@ -4,27 +4,102 @@ function Show-ContentSlide {
         Renders a content slide with optional header and body text.
 
     .DESCRIPTION
-        Displays a content slide that may contain a ### heading rendered as smaller
-        figlet text followed by content. If no ### heading is present, only content is shown.
-        Content headers use the configured h3 font setting (also accepts aliases: headerFont, h3Font).
+        Displays a content slide that may contain a ### heading rendered as figlet
+        text followed by body content. This is the most common slide type for presenting
+        information with structured content.
+        
+        The rendering process:
+        1. Detects optional ### heading and extracts text
+        2. Parses body content for code blocks, images, and text segments
+        3. Filters progressive bullets (*) based on VisibleBullets parameter
+        4. Converts markdown formatting to Spectre Console markup
+        5. Renders content in a bordered panel with proper spacing
+        
+        Progressive bullets (*) are revealed one at a time during navigation, while
+        regular bullets (-) appear all at once. Code blocks and images are preserved
+        during bullet filtering to prevent display issues.
+        
+        Content headers use the configured h3 font setting and support color overrides
+        via HTML color tags in the heading text.
 
     .PARAMETER Slide
-        The slide object containing the content to render.
+        The slide object containing the content to render. Must include Content property
+        with the markdown text and Number property for identification.
 
     .PARAMETER Settings
-        The presentation settings hashtable containing colors, fonts, and styling options.
+        The presentation settings hashtable containing:
+        - foreground: Default text color
+        - background: Slide background color
+        - border: Border color
+        - borderStyle: Border style (rounded, square, double, heavy, none)
+        - h3: Font name for ### headings (default: 'mini')
+        - h3Color: Optional color override for ### headings
 
     .PARAMETER VisibleBullets
-        The number of progressive bullets (*) to show. If not specified, all bullets are shown.
+        The number of progressive bullets (*) to reveal. Use this to implement step-by-step
+        bullet reveal during presentation navigation. Default is [int]::MaxValue (all bullets shown).
+        
+        Only affects lines starting with '* ' (asterisk bullets). Regular bullets starting
+        with '- ' (dash bullets) are always shown.
+
+    .PARAMETER CurrentSlide
+        The current slide number for pagination display. Default is 1.
+
+    .PARAMETER TotalSlides
+        The total number of slides in the presentation for pagination. Default is 1.
 
     .EXAMPLE
         Show-ContentSlide -Slide $slideObject -Settings $settings
 
+        Renders a content slide with all bullets visible using presentation settings.
+
     .EXAMPLE
         Show-ContentSlide -Slide $slideObject -Settings $settings -VisibleBullets 2
 
+        Renders a content slide showing only the first 2 progressive bullets.
+        Additional bullets are hidden until navigation reveals them.
+
+    .EXAMPLE
+        $slide = [PSCustomObject]@{
+            Number = 3
+            Content = @'
+### Features
+
+* First feature (progressive)
+* Second feature (progressive)
+- Always visible bullet
+
+```powershell
+Get-Process | Select-Object Name
+```
+'@
+        }
+        Show-ContentSlide -Slide $slide -Settings $settings -VisibleBullets 1
+
+        Demonstrates progressive bullet reveal with code block. Only first * bullet
+        is visible, while - bullet and code block always appear.
+
+    .OUTPUTS
+        None. Renders directly to the terminal console using PwshSpectreConsole.
+
     .NOTES
-        Content slides are the most common slide type for displaying information.
+        Bullet Reveal Mechanism:
+        - Progressive bullets (*): Revealed one at a time based on VisibleBullets
+        - Regular bullets (-): Always displayed immediately
+        - Code blocks and images: Never filtered, always visible
+        
+        Heading Color Support:
+        - Inline color tags: <red>Heading</red> or <span style="color:red">Heading</span>
+        - Frontmatter override: h3Color setting in YAML
+        - Fallback: Uses foreground color from settings
+        
+        Content Parsing:
+        - Markdown formatting converted to Spectre markup (bold, italic, code, strikethrough)
+        - Code blocks syntax highlighted when language specified
+        - Images rendered inline when supported by terminal
+        
+        Font Aliases:
+        - h3, headerFont, h3Font all map to the same font setting
     #>
     [CmdletBinding()]
     param(

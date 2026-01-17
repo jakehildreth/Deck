@@ -5,20 +5,105 @@ function Show-TitleSlide {
 
     .DESCRIPTION
         Displays a full-screen title slide containing a # heading rendered as large
-        figlet text. Title slides are centered and use the configured h1 font setting
-        (also accepts aliases: titleFont, h1Font).
+        figlet text. Title slides are the opening slides of a presentation, designed
+        to make a strong visual impact with large, centered text.
+        
+        The rendering process:
+        1. Extracts # heading text from slide content
+        2. Detects inline color tags for color override
+        3. Loads font file from h1 setting (default: Spectre's built-in font)
+        4. Creates centered figlet text with specified color
+        5. Calculates padding to vertically center content
+        6. Renders in bordered panel filling terminal height
+        
+        Title slides use the h1 font setting (also accepts aliases: titleFont, h1Font).
+        Font files must be in .flf (FIGlet) format and located in the Fonts directory.
+        
+        Title slides should contain ONLY a # heading with no other content. Additional
+        content will not be displayed.
 
     .PARAMETER Slide
-        The slide object containing the content to render.
+        The slide object containing a # heading. Must match pattern: ^#\s+(.+)$
 
     .PARAMETER Settings
-        The presentation settings hashtable containing colors, fonts, and styling options.
+        The presentation settings hashtable containing:
+        - foreground: Default text color
+        - background: Slide background color
+        - border: Border color
+        - borderStyle: Border style
+        - h1: Font name for # headings (default: built-in Spectre font)
+        - h1Color: Optional color override for # headings
+
+    .PARAMETER IsFirstSlide
+        Switch indicating this is the first slide in the presentation.
+        Reserved for potential future features (e.g., logo display).
+
+    .PARAMETER CurrentSlide
+        The current slide number for pagination display.
+
+    .PARAMETER TotalSlides
+        The total number of slides in the presentation for pagination.
 
     .EXAMPLE
         Show-TitleSlide -Slide $slideObject -Settings $settings
 
+        Renders a title slide with large centered figlet text.
+
+    .EXAMPLE
+        $slide = [PSCustomObject]@{
+            Number = 1
+            Content = '# Welcome to Deck'
+        }
+        $settings = @{ h1 = 'default'; foreground = 'Cyan1'; border = 'Blue' }
+        Show-TitleSlide -Slide $slide -Settings $settings -IsFirstSlide
+
+        Renders the first slide of a presentation with default font and cyan text.
+
+    .EXAMPLE
+        $slide = [PSCustomObject]@{
+            Number = 1
+            Content = '# <magenta>PowerShell Rocks!</magenta>'
+        }
+        Show-TitleSlide -Slide $slide -Settings $settings
+
+        Renders a title slide with inline color override (magenta text).
+
+    .EXAMPLE
+        $settings = @{ h1 = 'small'; h1Color = 'Yellow'; border = 'Green' }
+        Show-TitleSlide -Slide $slide -Settings $settings
+
+        Renders a title slide using the 'small' font file and yellow color from settings.
+
+    .OUTPUTS
+        None. Renders directly to the terminal console using PwshSpectreConsole.
+
     .NOTES
-        Title slides should contain only a single # heading with no other content.
+        Font Configuration:
+        - h1 setting specifies font name without .flf extension
+        - Fonts loaded from ../Fonts/ directory relative to script
+        - 'default' uses Spectre.Console's built-in font
+        - Custom fonts must be valid FIGlet (.flf) format
+        
+        Font Aliases:
+        - h1, titleFont, h1Font all map to the same setting
+        - Normalized by ConvertFrom-DeckMarkdown during parsing
+        
+        Color Priority:
+        - Inline tags: <color>text</color> or <span style="color:name">text</span>
+        - h1Color setting in frontmatter
+        - foreground setting as fallback
+        
+        Content Rules:
+        - MUST contain exactly one # heading
+        - NO additional content after heading
+        - Use ## for section slides instead
+        - Use ### for content slides with headers
+        
+        Visual Design:
+        - Content vertically centered in panel
+        - Figlet text horizontally centered
+        - Panel fills entire terminal height
+        - Border color from settings
     #>
     [CmdletBinding()]
     param(

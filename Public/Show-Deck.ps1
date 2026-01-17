@@ -5,12 +5,25 @@ function Show-Deck {
 
     .DESCRIPTION
         Converts a Markdown file into a live terminal-based presentation with rich
-        formatting, colors, and ASCII art. Navigate through slides using arrow keys,
-        space, or enter.
+        formatting, colors, and ASCII art powered by PwshSpectreConsole.
+        
+        Supports multiple slide types including title slides (# heading), section slides
+        (## heading), content slides (### heading with body), multi-column layouts (|||
+        delimiter), and image slides (text + image side-by-side).
+        
+        Navigate through slides using arrow keys, space, enter, or vim-style keys.
+        Progressive bullets (*) are revealed one at a time, while regular bullets (-)
+        appear all at once.
+        
+        Presentations can be loaded from local files or directly from web URLs for
+        instant sharing and viewing.
 
     .PARAMETER Path
         Path or URL to the Markdown file containing the presentation.
         Supports both local file paths and web URLs (http/https).
+        
+        Local paths can be relative or absolute. Web URLs are downloaded to a
+        temporary file before rendering.
 
     .PARAMETER Background
         Override the background color from the Markdown frontmatter.
@@ -24,23 +37,69 @@ function Show-Deck {
         Override the border color from the Markdown frontmatter.
         Accepts Spectre.Console.Color values (e.g., 'Blue', 'Magenta1', 'Green').
 
+    .PARAMETER Strict
+        Enable strict validation mode. Before starting the presentation, validates:
+        - Content height doesn't exceed terminal viewport
+        - All referenced image files exist
+        - Figlet text renders within available space
+        
+        Reports all validation errors and prevents presentation from starting if
+        issues are found. Useful for testing presentations before delivering them.
+
     .EXAMPLE
         Show-Deck -Path ./presentation.md
 
-        Displays the presentation from the specified Markdown file.
+        Displays the presentation from the specified Markdown file with default settings.
 
     .EXAMPLE
-        Show-Deck -Path https://example.com/presentation.md
+        Show-Deck -Path https://raw.githubusercontent.com/jakehildreth/Deck/main/Examples/ExampleDeck.md
 
-        Displays the presentation from a web URL.
+        Loads and displays a presentation directly from a web URL.
 
     .EXAMPLE
         Show-Deck -Path ./presentation.md -Foreground Cyan1 -Background Black
 
-        Displays the presentation with custom colors.
+        Displays the presentation with custom foreground and background colors,
+        overriding the frontmatter settings.
+
+    .EXAMPLE
+        Show-Deck -Path ./presentation.md -Border Magenta1
+
+        Displays the presentation with a custom border color while keeping other
+        frontmatter settings intact.
+
+    .EXAMPLE
+        Show-Deck -Path ./presentation.md -Strict
+
+        Validates the presentation before starting. Checks that all content fits
+        within the terminal viewport and all image files exist.
+
+    .OUTPUTS
+        None. Displays an interactive presentation directly in the terminal.
 
     .NOTES
-        Requires PwshSpectreConsole module for terminal rendering.
+        Navigation Keys:
+        - Forward: Right Arrow, Down Arrow, Space, Enter, n, Page Down
+        - Backward: Left Arrow, Up Arrow, Backspace, p, Page Up
+        - Exit: Escape, q, Ctrl+C
+        - Help: ?
+        
+        Requirements:
+        - PwshSpectreConsole module (auto-installed if missing)
+        - PowerShell 7.4 or later
+        
+        Slide Types:
+        - Title: Single # heading (large figlet text)
+        - Section: Single ## heading (medium figlet text)
+        - Content: ### heading with body content
+        - Multi-column: Content split with ||| delimiter
+        - Image: Text content with ![alt](path) image reference
+
+    .LINK
+        https://github.com/jakehildreth/Deck
+
+    .LINK
+        https://github.com/ShaunLawrie/PwshSpectreConsole
     #>
     [CmdletBinding()]
     param(

@@ -4,21 +4,129 @@ function Show-MultiColumnSlide {
         Renders a slide with multiple columns of content.
 
     .DESCRIPTION
-        Displays a slide split into multiple columns. Content is divided using the ||| delimiter.
-        Supports 2, 3, 4, or more columns that are evenly spaced across the width.
-        Optionally includes a ### heading rendered as figlet text above the columns.
+        Displays a slide split into 2, 3, 4, or more columns arranged side-by-side.
+        Content is divided using the ||| delimiter (three pipe characters). Each column
+        can contain text, code blocks, and markdown formatting.
+        
+        The rendering process:
+        1. Detects optional ### heading and renders as centered figlet text
+        2. Splits body content at each ||| delimiter
+        3. Parses code blocks in each column independently
+        4. Converts markdown formatting to Spectre markup
+        5. Renders columns with equal width distribution
+        
+        Columns are automatically sized to evenly divide the terminal width. For example,
+        2 columns get 50% each, 3 columns get 33% each, etc.
+        
+        The optional ### heading appears above all columns as centered figlet text.
+        Heading color can be overridden using HTML color tags.
 
     .PARAMETER Slide
-        The slide object containing the content to render.
+        The slide object containing content with ||| delimiters separating columns.
 
     .PARAMETER Settings
-        The presentation settings hashtable containing colors, fonts, and styling options.
+        The presentation settings hashtable containing:
+        - foreground: Default text color
+        - background: Slide background color
+        - border: Border color
+        - borderStyle: Border style
+        - h3: Font for optional ### heading
+        - h3Color: Optional color override for heading
+
+    .PARAMETER CurrentSlide
+        The current slide number for pagination display.
+
+    .PARAMETER TotalSlides
+        The total number of slides in the presentation for pagination.
 
     .EXAMPLE
         Show-MultiColumnSlide -Slide $slideObject -Settings $settings
 
+        Renders a multi-column slide with content split by ||| delimiters.
+
+    .EXAMPLE
+        $slide = [PSCustomObject]@{
+            Number = 4
+            Content = @'
+### Feature Comparison
+
+**Basic**
+- Feature A
+- Feature B
+
+|||
+
+**Pro**
+- Feature A
+- Feature B
+- Feature C
+
+|||
+
+**Enterprise**
+- All features
+- Priority support
+- Custom integration
+'@
+        }
+        Show-MultiColumnSlide -Slide $slide -Settings $settings
+
+        Demonstrates 3-column slide with heading and bullet lists in each column.
+
+    .EXAMPLE
+        $slide = [PSCustomObject]@{
+            Number = 7
+            Content = @'
+Before:
+
+```powershell
+Get-Process
+```
+
+|||
+
+After:
+
+```powershell
+Get-Process | Where-Object CPU -gt 100
+```
+'@
+        }
+        Show-MultiColumnSlide -Slide $slide -Settings $settings
+
+        Demonstrates 2-column slide comparing code examples side-by-side.
+
+    .OUTPUTS
+        None. Renders directly to the terminal console using PwshSpectreConsole.
+
     .NOTES
-        Multi-column slides split content at each ||| delimiter for side-by-side display.
+        Column Layout:
+        - 2 columns: 50% width each
+        - 3 columns: 33% width each
+        - 4+ columns: Evenly divided (may be tight on narrow terminals)
+        
+        Column Delimiter:
+        - Use exactly three pipe characters: |||
+        - Must be on its own line
+        - Whitespace around delimiter is trimmed
+        
+        Column Content:
+        - Markdown formatting supported (bold, italic, code, strikethrough)
+        - Code blocks with syntax highlighting
+        - Bullet lists (both - and * styles)
+        - Plain text paragraphs
+        
+        Heading Support:
+        - Optional ### heading renders above columns
+        - Heading uses h3 font (default: 'mini')
+        - Heading centered across full slide width
+        - Color override via <color>text</color> or <span style="color:name">text</span>
+        
+        Best Practices:
+        - Keep column content balanced for visual appeal
+        - Avoid excessive text in narrow columns
+        - Test on target terminal width
+        - Use 2-3 columns for best readability
     #>
     [CmdletBinding()]
     param(

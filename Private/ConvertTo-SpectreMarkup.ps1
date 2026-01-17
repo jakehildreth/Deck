@@ -4,11 +4,28 @@ function ConvertTo-SpectreMarkup {
         Converts markdown formatting to Spectre Console markup.
 
     .DESCRIPTION
-        Transforms common markdown inline formatting (bold, italic, code, strikethrough, colors)
-        into Spectre Console markup tags for rich terminal rendering.
+        Transforms common markdown inline formatting into Spectre Console markup tags
+        for rich terminal rendering. This enables markdown text to display with colors,
+        bold, italic, and other formatting in the terminal.
+        
+        The conversion process handles:
+        1. Protection of inline code blocks (backticks) from markup conversion
+        2. HTML color tags (<color>text</color> and <span style="color:name">text</span>)
+        3. Bold formatting (**text** or __text__)
+        4. Italic formatting (*text* or _text_)
+        5. Strikethrough formatting (~~text~~)
+        6. Inline code styling with grey on grey15 background
+        
+        Conversion order matters to prevent conflicts between overlapping patterns.
+        Code blocks are protected first using placeholders, then restored after all
+        other conversions to prevent markdown inside code examples from being parsed.
+        
+        Image markdown syntax ![alt](url) is escaped to prevent Spectre.Console from
+        attempting to parse it.
 
     .PARAMETER Text
-        The text containing markdown formatting to convert.
+        The text containing markdown formatting to convert. Can be empty string.
+        Accepts pipeline input.
 
     .EXAMPLE
         ConvertTo-SpectreMarkup -Text "This is **bold** and *italic* text"
@@ -16,13 +33,81 @@ function ConvertTo-SpectreMarkup {
         Returns: "This is [bold]bold[/] and [italic]italic[/] text"
 
     .EXAMPLE
-        ConvertTo-SpectreMarkup -Text "This is <span style='color:red'>red text</span>"
+        ConvertTo-SpectreMarkup -Text "Use `Get-Process` to list processes"
 
-        Returns: "This is [red]red text[/]"
+        Returns: "Use [grey on grey15]Get-Process[/] to list processes"
+        Inline code is styled with grey text on dark grey background.
+
+    .EXAMPLE
+        ConvertTo-SpectreMarkup -Text "This is <red>red text</red> and <cyan>cyan text</cyan>"
+
+        Returns: "This is [red]red text[/] and [cyan]cyan text[/]"
+
+    .EXAMPLE
+        ConvertTo-SpectreMarkup -Text "This is <span style='color:magenta'>magenta</span>"
+
+        Returns: "This is [magenta]magenta[/]"
+
+    .EXAMPLE
+        "Hello **world**" | ConvertTo-SpectreMarkup
+
+        Demonstrates pipeline input. Returns: "Hello [bold]world[/]"
+
+    .EXAMPLE
+        $lines = @(
+            "**Bold** text",
+            "*Italic* text",
+            "~~Strikethrough~~ text"
+        )
+        $lines | ForEach-Object { ConvertTo-SpectreMarkup -Text $_ }
+
+        Converts multiple lines with different formatting types.
+
+    .OUTPUTS
+        System.String
+        
+        Returns the input text with markdown formatting converted to Spectre Console
+        markup tags ([bold], [italic], [color], etc.).
 
     .NOTES
-        Conversion order matters to handle overlapping patterns correctly.
-        Supports HTML color tags: <span style="color:colorname">text</span> and <colorname>text</colorname>.
+        Conversion Order (important to prevent conflicts):
+        1. Escape image syntax (![...](...) → ![[...]](...))  
+        2. Extract and protect inline code blocks with placeholders
+        3. Convert HTML color tags to Spectre markup
+        4. Convert bold (**text** and __text__)
+        5. Convert italic (*text* and _text_)
+        6. Convert strikethrough (~~text~~)
+        7. Restore protected code blocks
+        
+        Markdown Patterns Supported:
+        - Bold: **text** or __text__ → [bold]text[/]
+        - Italic: *text* or _text_ → [italic]text[/]
+        - Code: `text` → [grey on grey15]text[/] (with proper escaping)
+        - Strikethrough: ~~text~~ → [strikethrough]text[/]
+        - HTML color: <color>text</color> → [color]text[/]
+        - Span color: <span style="color:name">text</span> → [name]text[/]
+        
+        Code Block Protection:
+        - Inline code content is escaped using [Spectre.Console.Markup]::Escape()
+        - Prevents special characters in code from being interpreted as markup
+        - Temporarily replaced with placeholders during other conversions
+        - Restored after all pattern matching complete
+        
+        Image Syntax Escaping:
+        - ![alt](url) → ![[alt]](url)
+        - Prevents Spectre.Console from parsing image references
+        - Preserves image syntax for display as text
+        
+        Color Names:
+        - Must match Spectre.Console.Color names (case-insensitive)
+        - Examples: Red, Green, Blue, Cyan1, Magenta1, Yellow, White, Black
+        - Invalid colors may cause rendering issues
+        
+        Not Supported:
+        - Nested formatting (e.g., ***bold italic***)
+        - Per-character coloring
+        - Links [text](url) - displayed as-is
+        - Block-level markdown (headers, lists, etc.) - handled by slide renderers
     #>
     [CmdletBinding()]
     param(

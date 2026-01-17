@@ -5,20 +5,107 @@ function Show-SectionSlide {
 
     .DESCRIPTION
         Displays a full-screen section slide containing a ## heading rendered as medium
-        figlet text. Section slides are centered and use the configured h2 font setting
-        (also accepts aliases: sectionFont, h2Font).
+        figlet text. Section slides serve as dividers between major parts of a presentation,
+        creating visual breaks and organizing content into logical sections.
+        
+        The rendering process:
+        1. Extracts ## heading text from slide content
+        2. Detects inline color tags for color override
+        3. Loads font file from h2 setting (default: 'small' font)
+        4. Creates centered figlet text with specified color
+        5. Calculates padding to vertically center content
+        6. Renders in bordered panel filling terminal height
+        
+        Section slides use the h2 font setting (also accepts aliases: sectionFont, h2Font).
+        The default h2 font is 'small', which is smaller than title slides but larger
+        than content slide headers.
+        
+        Section slides should contain ONLY a ## heading with no other content. Additional
+        content will not be displayed.
 
     .PARAMETER Slide
-        The slide object containing the content to render.
+        The slide object containing a ## heading. Must match pattern: ^##\s+(.+)$
 
     .PARAMETER Settings
-        The presentation settings hashtable containing colors, fonts, and styling options.
+        The presentation settings hashtable containing:
+        - foreground: Default text color
+        - background: Slide background color
+        - border: Border color
+        - borderStyle: Border style
+        - h2: Font name for ## headings (default: 'small')
+        - h2Color: Optional color override for ## headings
+
+    .PARAMETER CurrentSlide
+        The current slide number for pagination display.
+
+    .PARAMETER TotalSlides
+        The total number of slides in the presentation for pagination.
 
     .EXAMPLE
         Show-SectionSlide -Slide $slideObject -Settings $settings
 
+        Renders a section slide with medium centered figlet text.
+
+    .EXAMPLE
+        $slide = [PSCustomObject]@{
+            Number = 10
+            Content = '## Implementation Details'
+        }
+        $settings = @{ h2 = 'small'; foreground = 'White'; border = 'Blue' }
+        Show-SectionSlide -Slide $slide -Settings $settings
+
+        Renders a section slide divider with default 'small' font.
+
+    .EXAMPLE
+        $slide = [PSCustomObject]@{
+            Number = 15
+            Content = '## <cyan>Demo Time</cyan>'
+        }
+        Show-SectionSlide -Slide $slide -Settings $settings
+
+        Renders a section slide with inline color override (cyan text).
+
+    .EXAMPLE
+        $settings = @{ h2 = 'mini'; h2Color = 'Green'; border = 'Green' }
+        Show-SectionSlide -Slide $slide -Settings $settings
+
+        Renders a section slide using 'mini' font and green color from settings.
+
+    .OUTPUTS
+        None. Renders directly to the terminal console using PwshSpectreConsole.
+
     .NOTES
-        Section slides should contain only a single ## heading with no other content.
+        Font Configuration:
+        - h2 setting specifies font name without .flf extension
+        - Default h2 font is 'small' (medium-sized figlet text)
+        - Fonts loaded from ../Fonts/ directory relative to script
+        - Custom fonts must be valid FIGlet (.flf) format
+        
+        Font Aliases:
+        - h2, sectionFont, h2Font all map to the same setting
+        - Normalized by ConvertFrom-DeckMarkdown during parsing
+        
+        Color Priority:
+        - Inline tags: <color>text</color> or <span style="color:name">text</span>
+        - h2Color setting in frontmatter
+        - foreground setting as fallback
+        
+        Content Rules:
+        - MUST contain exactly one ## heading
+        - NO additional content after heading
+        - Use # for title slides instead
+        - Use ### for content slides with headers
+        
+        Visual Design:
+        - Content vertically centered in panel
+        - Figlet text horizontally centered
+        - Panel fills entire terminal height
+        - Typically smaller than title slides but larger than content headers
+        
+        Usage Pattern:
+        - Opening: Title slide (#)
+        - Sections: Section slides (##) to divide major topics
+        - Content: Content slides (###) for detailed information
     #>
     [CmdletBinding()]
     param(

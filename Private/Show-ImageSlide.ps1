@@ -4,28 +4,118 @@ function Show-ImageSlide {
         Renders a slide with content on the left and an image on the right.
 
     .DESCRIPTION
-        Displays a slide with a two-panel layout where the left panel contains text content
-        (optionally with a ### heading) and the right panel displays an image. The image is
-        automatically sized to fill the available space while maintaining aspect ratio.
+        Displays a slide with a two-panel layout using a 60/40 split: left panel (60%)
+        contains text content and the right panel (40%) displays an image. The image is
+        automatically sized to fill available space while maintaining aspect ratio.
+        
+        The rendering process:
+        1. Parses content to extract ![alt](path) image reference
+        2. Separates text content from image markdown
+        3. Detects optional ### heading in text content
+        4. Renders left panel with figlet header and body content
+        5. Renders right panel with image (supports both local and web URLs)
+        6. Filters progressive bullets (*) based on VisibleBullets parameter
+        
+        Images support both local file paths (relative or absolute) and web URLs
+        (http/https). The {width=N} suffix can specify maximum image width in characters.
+        
+        Left panel supports all content slide features including progressive bullets,
+        code blocks, and markdown formatting.
 
     .PARAMETER Slide
-        The slide object containing the content and image to render.
+        The slide object containing both text content and an image reference using
+        ![alt](path) or ![alt](path){width=N} syntax.
 
     .PARAMETER Settings
-        The presentation settings hashtable containing colors, fonts, and styling options.
+        The presentation settings hashtable containing:
+        - foreground: Default text color
+        - background: Slide background color
+        - border: Border color
+        - borderStyle: Border style
+        - h3: Font for ### headings in left panel
+        - h3Color: Optional color for ### headings
 
     .PARAMETER VisibleBullets
-        The number of progressive bullets (*) to show. If not specified, all bullets are shown.
+        The number of progressive bullets (*) to reveal in the left panel content.
+        Default is [int]::MaxValue (all bullets shown).
+
+    .PARAMETER CurrentSlide
+        The current slide number for pagination display.
+
+    .PARAMETER TotalSlides
+        The total number of slides in the presentation for pagination.
 
     .EXAMPLE
         Show-ImageSlide -Slide $slideObject -Settings $settings
 
+        Renders an image slide with content on left (60%) and image on right (40%).
+
     .EXAMPLE
         Show-ImageSlide -Slide $slideObject -Settings $settings -VisibleBullets 2
 
+        Renders an image slide showing only the first 2 progressive bullets in the
+        left panel content.
+
+    .EXAMPLE
+        $slide = [PSCustomObject]@{
+            Number = 5
+            Content = @'
+### Product Demo
+
+* Feature one
+* Feature two
+* Feature three
+
+![Product Screenshot](./images/demo.png){width=80}
+'@
+        }
+        Show-ImageSlide -Slide $slide -Settings $settings
+
+        Demonstrates image slide with heading, progressive bullets, and custom image width.
+
+    .EXAMPLE
+        $slide = [PSCustomObject]@{
+            Number = 6
+            Content = @'
+Key benefits of our solution.
+
+![Architecture](https://example.com/arch.png)
+'@
+        }
+        Show-ImageSlide -Slide $slide -Settings $settings
+
+        Demonstrates image slide loading image from web URL with no heading.
+
+    .OUTPUTS
+        None. Renders directly to the terminal console using PwshSpectreConsole.
+
     .NOTES
-        This slide type requires exactly one image in the markdown using ![alt](path) syntax.
-        The image path can be relative to the markdown file or absolute.
+        Layout:
+        - Left panel: 60% of terminal width for text content
+        - Right panel: 40% of terminal width for image
+        - Panels displayed side-by-side using Spectre.Console.Columns
+        
+        Image Syntax:
+        - Standard: ![alt text](path/to/image.png)
+        - With width: ![alt text](path/to/image.png){width=80}
+        - Web URLs: ![alt text](https://example.com/image.png)
+        
+        Image Path Resolution:
+        - Relative paths: Resolved from markdown file location
+        - Absolute paths: Used as-is
+        - Web URLs: Downloaded and cached during display
+        
+        Left Panel Features:
+        - Optional ### heading rendered as figlet
+        - Progressive bullets (*) with reveal mechanism
+        - Regular bullets (-) always visible
+        - Code blocks with syntax highlighting
+        - Markdown formatting (bold, italic, code, strikethrough)
+        
+        Requirements:
+        - Exactly one ![...](...) image reference per slide
+        - Image must not be inside code fence (would be treated as example)
+        - Terminal must support image rendering (Kitty, iTerm2, WezTerm, etc.)
     #>
     [CmdletBinding()]
     param(

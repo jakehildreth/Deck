@@ -4,21 +4,84 @@ function ConvertFrom-DeckMarkdown {
         Parses markdown file for slide presentation data.
 
     .DESCRIPTION
-        Extracts YAML frontmatter settings and parses the markdown content into individual slides.
-        Returns a structured object containing global settings and slide data.
+        Extracts YAML frontmatter settings and splits markdown content into individual
+        slides for presentation rendering. This is the core parsing engine that converts
+        raw markdown into a structured presentation object.
+        
+        The parser performs several operations:
+        1. Extracts YAML frontmatter (--- delimited) for global settings
+        2. Normalizes font and color property aliases to canonical names
+        3. Splits content by horizontal rules (---, ***, ___) while preserving code blocks
+        4. Parses per-slide override comments (pagination, paginationStyle)
+        5. Filters out empty slides and handles intentionally blank slides
+        6. Tracks line numbers for error reporting
+        
+        Horizontal rules inside code fences are protected and not treated as slide
+        delimiters. Code blocks are temporarily replaced with placeholders during
+        parsing to ensure they remain intact.
 
     .PARAMETER Path
-        Path to the markdown file to parse.
+        Path to the markdown file to parse. Must be a valid file path that exists.
+        Both relative and absolute paths are supported.
 
     .EXAMPLE
-        ConvertFrom-DeckMarkdown -Path ".\presentation.md"
-        Parses the markdown file and returns slide data.
+        $presentation = ConvertFrom-DeckMarkdown -Path ".\presentation.md"
+        $presentation.Settings.foreground
+        $presentation.Slides.Count
+
+        Parses a markdown file and returns the presentation object with settings
+        and slide array.
+
+    .EXAMPLE
+        $presentation = ConvertFrom-DeckMarkdown -Path ".\slides.md"
+        foreach ($slide in $presentation.Slides) {
+            Write-Host "Slide $($slide.Number): $($slide.Content.Substring(0, 50))"
+        }
+
+        Parses markdown and iterates through all slides to display a summary.
+
+    .EXAMPLE
+        $presentation = ConvertFrom-DeckMarkdown -Path ".\demo.md" -Verbose
+        
+        Parses markdown with verbose output showing frontmatter parsing, font alias
+        normalization, and slide detection details.
 
     .OUTPUTS
-        PSCustomObject with Settings and Slides properties.
+        PSCustomObject
+        
+        Returns an object with three properties:
+        - Settings: Hashtable containing all presentation settings (colors, fonts, borders, pagination)
+        - Slides: Array of slide objects, each containing Number, Content, IsBlank, LineNumber, and Overrides
+        - SourcePath: Original file path for reference
 
     .NOTES
-        Handles YAML frontmatter extraction and slide splitting by horizontal rules.
+        Supported Frontmatter Keys:
+        - background, foreground, border: Color names (e.g., 'Black', 'Cyan1')
+        - header, footer: Optional text for header/footer areas
+        - pagination: Boolean to enable/disable slide numbers
+        - paginationStyle: Style of pagination (minimal, fraction, text, progress, dots)
+        - borderStyle: Border style (rounded, square, double, heavy, none)
+        - h1, h2, h3: Font names for title, section, and content headings
+        - h1Color, h2Color, h3Color: Colors for each heading level
+        
+        Font Property Aliases (all normalized to h1/h2/h3):
+        - titleFont, h1Font → h1
+        - sectionFont, h2Font → h2
+        - headerFont, h3Font → h3
+        
+        Color Property Aliases (all normalized to h1Color/h2Color/h3Color):
+        - titleColor, h1FontColor → h1Color
+        - sectionColor, h2FontColor → h2Color
+        - headerColor, h3FontColor → h3Color
+        
+        Per-Slide Overrides (HTML comments):
+        - <!-- pagination: true/false -->
+        - <!-- paginationStyle: minimal/fraction/text/progress/dots -->
+        
+        Special Slide Handling:
+        - Empty slides are automatically skipped
+        - Slides with <!-- intentionally blank --> comment are preserved as blank
+        - No delimiters: Entire file treated as single slide with warning
     #>
     [CmdletBinding()]
     param(
