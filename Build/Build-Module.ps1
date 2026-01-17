@@ -52,7 +52,7 @@ Build-Module -ModuleName 'Deck' {
     #New-ConfigurationModule -Type ApprovedModule -Name 'PSSharedGoods', 'PSWriteColor', 'Connectimo', 'PSUnifi', 'PSWebToolbox', 'PSMyPassword'
 
     #New-ConfigurationModuleSkip -IgnoreFunctionName 'Invoke-Formatter', 'Find-Module' -IgnoreModuleName 'platyPS'
-    New-ConfigurationModuleSkip -IgnoreFunctionName 'Clear-Host' -IgnoreModuleName 'platyPS'
+    New-ConfigurationModuleSkip -IgnoreFunctionName 'Clear-Host', 'Get-TrueColorBg', 'Get-TrueColorFg' -IgnoreModuleName 'platyPS'
 
     $ConfigurationFormat = [ordered] @{
         RemoveComments                              = $false

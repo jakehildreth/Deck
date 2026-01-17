@@ -350,8 +350,8 @@ function Show-Deck {
                 # If there are validation errors, fail with a detailed report
                 if ($validationErrors.Count -gt 0) {
                     $errorReport = "Strict mode validation failed with $($validationErrors.Count) error(s):`n"
-                    foreach ($error in $validationErrors) {
-                        $errorReport += "  - $error`n"
+                    foreach ($err in $validationErrors) {
+                        $errorReport += "  - $err`n"
                     }
                     $exception = [System.InvalidOperationException]::new($errorReport)
                     $errorRecord = [System.Management.Automation.ErrorRecord]::new(
