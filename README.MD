@@ -1,4 +1,5 @@
-﻿# Deck
+﻿![Deck Logo](Deck.png)
+# Deck
 
 Terminal-based presentations from Markdown files using PowerShell.
 
