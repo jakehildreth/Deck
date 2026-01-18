@@ -274,7 +274,7 @@ This slide uses `paginationStyle: fraction` override!
 
 ### Learn More!
 
-GitHub: github.com/jakehildreth/Deck
+GitHub: github.com/jakehildreth/Deck   
 
               Built with
               PowerShell
