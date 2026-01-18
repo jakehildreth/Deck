@@ -6,13 +6,7 @@ borderStyle: rounded
 pagination: true
 paginationStyle: fraction
 h1Font: PressStart2P
-h1Color: cyanfeat(fonts): add font and color override system with showcase
-
-- Add font and color override parsing in ConvertFrom-DeckMarkdown.ps1 with alias support
-- Create FontShowcase.md with 32 slides demonstrating all 25 fonts with color overrides
-- Change default h2 font from 'small' to '04B_24__' for pixel aesthetic
-- Improve goodbye screen with split-color message and Clear-Host on exit
-- Bump module version to 2026.1.18.927
+h1Color: cyan
 h2Font: 04B_24__
 h2Color: magenta
 ---
