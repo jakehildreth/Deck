@@ -63,9 +63,18 @@ function Get-SpectreColorFromSettings {
     .NOTES
         Supported Colors:
         Spectre.Console supports a wide palette including:
-        - Basic: Black, White, Red, Green, Blue, Yellow, Cyan, Magenta
-        - Extended: Grey, Grey0-Grey100, Red1-Red3, Green1-Green3, etc.
-        - Named: Many named colors from various standards
+        - Basic colors: Black, White, Red, Green, Blue, Yellow, Aqua, Fuchsia, Grey, 
+          Lime, Maroon, Navy, Olive, Purple, Silver, Teal, Violet
+        - Mapped colors: Cyan → Cyan1, Magenta → Magenta1 (plain versions don't exist)
+        - Extended: Grey0-Grey100, Red1-Red3, Green1-Green4, Blue1-Blue3, etc.
+        - Dark variants: DarkRed, DarkGreen, DarkBlue, DarkCyan, DarkMagenta, etc.
+        - Named: CornflowerBlue, DeepPink, HotPink, IndianRed, LightCoral, etc.
+        
+        Color Mapping:
+        Cyan and Magenta are special cases - Spectre.Console doesn't have plain "Cyan" 
+        or "Magenta", only numbered variants (Cyan1-3, Magenta1-3) and Dark variants.
+        These are automatically mapped to their brightest numbered equivalents with
+        verbose logging showing the mapping.
         
         Case Handling:
         - Input: Any case (cyan, CYAN, Cyan)
@@ -107,7 +116,21 @@ function Get-SpectreColorFromSettings {
     }
 
     $titleCaseName = (Get-Culture).TextInfo.ToTitleCase($ColorName.ToLower())
-    Write-Verbose "  $SettingName color: $titleCaseName"
+    
+    # Map common color names that don't exist in Spectre.Console to closest equivalents
+    # Only Cyan and Magenta need mapping - most basic colors (Red, Green, Blue, Yellow, etc.) exist natively
+    $colorMap = @{
+        'Magenta' = 'Magenta1'
+        'Cyan'    = 'Cyan1'
+    }
+    
+    if ($colorMap.ContainsKey($titleCaseName)) {
+        $mappedName = $colorMap[$titleCaseName]
+        Write-Verbose "  $SettingName color: $titleCaseName → $mappedName (mapped)"
+        $titleCaseName = $mappedName
+    } else {
+        Write-Verbose "  $SettingName color: $titleCaseName"
+    }
     
     try {
         return [Spectre.Console.Color]::$titleCaseName

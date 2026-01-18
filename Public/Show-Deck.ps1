@@ -25,18 +25,6 @@ function Show-Deck {
         Local paths can be relative or absolute. Web URLs are downloaded to a
         temporary file before rendering.
 
-    .PARAMETER Background
-        Override the background color from the Markdown frontmatter.
-        Accepts Spectre.Console.Color values (e.g., 'Black', 'DarkBlue', 'Grey15').
-
-    .PARAMETER Foreground
-        Override the foreground color from the Markdown frontmatter.
-        Accepts Spectre.Console.Color values (e.g., 'White', 'Cyan1', 'Yellow').
-
-    .PARAMETER Border
-        Override the border color from the Markdown frontmatter.
-        Accepts Spectre.Console.Color values (e.g., 'Blue', 'Magenta1', 'Green').
-
     .PARAMETER Strict
         Enable strict validation mode. Before starting the presentation, validates:
         - Content height doesn't exceed terminal viewport
@@ -55,18 +43,6 @@ function Show-Deck {
         Show-Deck -Path https://raw.githubusercontent.com/jakehildreth/Deck/main/Examples/ExampleDeck.md
 
         Loads and displays a presentation directly from a web URL.
-
-    .EXAMPLE
-        Show-Deck -Path ./presentation.md -Foreground Cyan1 -Background Black
-
-        Displays the presentation with custom foreground and background colors,
-        overriding the frontmatter settings.
-
-    .EXAMPLE
-        Show-Deck -Path ./presentation.md -Border Magenta1
-
-        Displays the presentation with a custom border color while keeping other
-        frontmatter settings intact.
 
     .EXAMPLE
         Show-Deck -Path ./presentation.md -Strict
@@ -116,15 +92,6 @@ function Show-Deck {
         [string]$Path,
 
         [Parameter()]
-        [string]$Background,
-
-        [Parameter()]
-        [string]$Foreground,
-
-        [Parameter()]
-        [string]$Border,
-
-        [Parameter()]
         [switch]$Strict
     )
 
@@ -162,16 +129,6 @@ function Show-Deck {
             
             $presentation = ConvertFrom-DeckMarkdown -Path $pathToLoad
             Write-Verbose "Loaded $($presentation.Slides.Count) slides"
-
-            if ($PSBoundParameters.ContainsKey('Background')) {
-                $presentation.Settings.background = $Background
-            }
-            if ($PSBoundParameters.ContainsKey('Foreground')) {
-                $presentation.Settings.foreground = $Foreground
-            }
-            if ($PSBoundParameters.ContainsKey('Border')) {
-                $presentation.Settings.border = $Border
-            }
 
             # Pre-validate image slide content heights (only in Strict mode)
             if ($Strict) {

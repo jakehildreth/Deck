@@ -116,7 +116,6 @@ function ConvertFrom-DeckMarkdown {
         try {
             # Read the entire file
             $content = Get-Content -Path $Path -Raw
-            $allLines = Get-Content -Path $Path
             
             # Extract YAML frontmatter
             $settings = $defaultSettings.Clone()
@@ -307,6 +306,16 @@ function ConvertFrom-DeckMarkdown {
                     Write-Verbose "    Override: h3Color = $($overrides['h3Color'])"
                 }
                 
+                # Parse border overrides
+                if ($tempContent -match '<!--\s*border:\s*(\w+)\s*-->') {
+                    $overrides['border'] = $Matches[1]
+                    Write-Verbose "    Override: border = $($overrides['border'])"
+                }
+                if ($tempContent -match '<!--\s*borderStyle:\s*(\w+)\s*-->') {
+                    $overrides['borderStyle'] = $Matches[1]
+                    Write-Verbose "    Override: borderStyle = $($overrides['borderStyle'])"
+                }
+                
                 # Remove HTML comments from display content
                 $contentWithoutComments = $trimmed -replace '<!--\s*pagination:\s*(true|false)\s*-->\r?\n?', ''
                 $contentWithoutComments = $contentWithoutComments -replace '<!--\s*paginationStyle:\s*(\w+)\s*-->\r?\n?', ''
@@ -316,6 +325,8 @@ function ConvertFrom-DeckMarkdown {
                 $contentWithoutComments = $contentWithoutComments -replace '<!--\s*(?:titleColor|h1FontColor|h1Color):\s*\w+\s*-->\r?\n?', ''
                 $contentWithoutComments = $contentWithoutComments -replace '<!--\s*(?:sectionColor|h2FontColor|h2Color):\s*\w+\s*-->\r?\n?', ''
                 $contentWithoutComments = $contentWithoutComments -replace '<!--\s*(?:headerColor|h3FontColor|h3Color):\s*\w+\s*-->\r?\n?', ''
+                $contentWithoutComments = $contentWithoutComments -replace '<!--\s*border:\s*\w+\s*-->\r?\n?', ''
+                $contentWithoutComments = $contentWithoutComments -replace '<!--\s*borderStyle:\s*\w+\s*-->\r?\n?', ''
                 
                 # Trim content after removing comments to eliminate blank lines
                 $contentWithoutComments = $contentWithoutComments.Trim()
