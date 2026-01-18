@@ -83,30 +83,53 @@ function Import-DeckDependency {
     }
 
     process {
-        try {
-            # Try to import the module
-            Import-Module PwshSpectreConsole -ErrorAction Stop
-            Write-Verbose 'PwshSpectreConsole loaded successfully'
-        } catch {
+        # Check if module is already loaded in the current session
+        $loadedModule = Get-Module -Name PwshSpectreConsole
+        
+        if ($loadedModule) {
+            Write-Verbose 'PwshSpectreConsole is already loaded in the session'
+            return
+        }
+        
+        # Check if module is installed
+        $module = Get-Module -ListAvailable -Name PwshSpectreConsole | Select-Object -First 1
+        
+        if (-not $module) {
             Write-Warning 'PwshSpectreConsole module not found. Attempting to install...'
             
             try {
                 # Try to install using Install-PSResource (PSResourceGet)
                 Install-PSResource -Name PwshSpectreConsole -Repository PSGallery -TrustRepository -ErrorAction Stop
-                Import-Module PwshSpectreConsole -ErrorAction Stop
-                Write-Verbose 'PwshSpectreConsole installed and loaded successfully'
+                Write-Verbose 'PwshSpectreConsole installed successfully'
             } catch {
                 # Installation failed - show sad face and exit
                 Show-SadFace
                 
                 $errorRecord = [System.Management.Automation.ErrorRecord]::new(
-                    [System.Exception]::new('Failed to load PwshSpectreConsole module'),
-                    'DependencyLoadFailure',
+                    [System.Exception]::new('Failed to install PwshSpectreConsole module'),
+                    'DependencyInstallFailure',
                     [System.Management.Automation.ErrorCategory]::NotInstalled,
                     'PwshSpectreConsole'
                 )
                 $PSCmdlet.ThrowTerminatingError($errorRecord)
             }
+        }
+        
+        # Now import the module (it was installed but not loaded)
+        try {
+            Import-Module PwshSpectreConsole -ErrorAction Stop
+            Write-Verbose 'PwshSpectreConsole loaded successfully'
+        } catch {
+            # Import failed even though module exists
+            Show-SadFace
+            
+            $errorRecord = [System.Management.Automation.ErrorRecord]::new(
+                [System.Exception]::new('Failed to import PwshSpectreConsole module. The module is installed but cannot be loaded.'),
+                'DependencyImportFailure',
+                [System.Management.Automation.ErrorCategory]::InvalidOperation,
+                'PwshSpectreConsole'
+            )
+            $PSCmdlet.ThrowTerminatingError($errorRecord)
         }
     }
 

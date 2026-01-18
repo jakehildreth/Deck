@@ -58,7 +58,7 @@
     )
     FunctionsToExport='Show-Deck'
     GUID='409fc543-77b9-48d6-87cc-8bee16c2a20d'
-    ModuleVersion='2026.1.18.742'
+    ModuleVersion='2026.1.18.857'
     PowerShellVersion='7.4'
     PrivateData=@{
         PSData=@{
