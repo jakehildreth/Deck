@@ -222,24 +222,29 @@ Fourth column with `code` formatting.
 
 ---
 
-### Appearance Settings
-
-Configure appearance in frontmatter:
+### Frontmatter Config
 
 ```yaml
 ---
-background: Black
-foreground: Cyan1
-border: Magenta
-borderStyle: rounded
-h1: PressStart2P          # Font aliases: titleFont, h1Font
-h2: Silkscreen            # Font aliases: sectionFont, h2Font
-h3: Micro5-Regular        # Font aliases: headerFont, h3Font
-h1Color: red              # Color aliases: titleColor, h1FontColor
-h2Color: cyan             # Color aliases: sectionColor, h2FontColor
-h3Color: green            # Color aliases: headerColor, h3FontColor
-pagination: true
+background: Black       
+foreground: Cyan1       
+border: Magenta         
+borderStyle: rounded    
+pagination: true        
 paginationStyle: minimal
+---
+```
+
+|||
+
+```yaml
+---
+h1: PressStart2P  
+h2: Silkscreen    
+h3: Micro5-Regular
+h1Color: red      
+h2Color: cyan     
+h3Color: green
 ---
 ```
 
@@ -276,7 +281,7 @@ This slide uses `paginationStyle: fraction` override!
 
 GitHub: github.com/jakehildreth/Deck   
 
-              Built with
-              PowerShell
-          PwshSpectreConsole
-                  <darkmagenta><3</darkmagenta>
+            Built with:
+            PowerShell
+         PwshSpectreConsole
+                <magenta1><3</magenta1>
