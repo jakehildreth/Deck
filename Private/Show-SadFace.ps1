@@ -73,14 +73,14 @@ function Show-SadFace {
 
     process {
         Write-Host ""
-        Write-Host "    ___________" -ForegroundColor Red
-        Write-Host "   /           \" -ForegroundColor Red
-        Write-Host "  /   O     O   \" -ForegroundColor Red
-        Write-Host " |               |" -ForegroundColor Red
-        Write-Host " |      ___      |" -ForegroundColor Red
-        Write-Host " |     /   \     |" -ForegroundColor Red
-        Write-Host "  \    \___/    /" -ForegroundColor Red
-        Write-Host "   \___________/" -ForegroundColor Red
+        Write-Host " ▄▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▄" -ForegroundColor Red
+        Write-Host " █                █" -ForegroundColor Red
+        Write-Host " █  ▀▄▀     ▀▄▀   █" -ForegroundColor Red
+        Write-Host " █  ▀ ▀     ▀ ▀   █" -ForegroundColor Red
+        Write-Host " █     ▀▄▄▀       █" -ForegroundColor Red
+        Write-Host " █     ▄▄▄▄▄      █" -ForegroundColor Red
+        Write-Host " █    ▀     ▀▀▄   █" -ForegroundColor Red
+        Write-Host " ▀▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▀" -ForegroundColor Red
         Write-Host ""
         Write-Host "  OH NO! Something went wrong!" -ForegroundColor Yellow
         Write-Host ""
@@ -97,5 +97,6 @@ function Show-SadFace {
         Write-Host ""
         Write-Host "  Then try running Deck again!" -ForegroundColor White
         Write-Host ""
+        Pause
     }
 }
