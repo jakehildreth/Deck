@@ -450,7 +450,11 @@ function Show-Deck {
 
                 # Handle help key
                 if ($key.Character -eq '?') {
-                    Clear-Host
+                    Write-Host "$([char]27)[H" -NoNewline
+                    
+                    # Get terminal dimensions
+                    $windowHeight = $Host.UI.RawUI.WindowSize.Height
+                    $windowWidth = $Host.UI.RawUI.WindowSize.Width
                     
                     # Create help table with keys as cells
                     $helpData = @(
@@ -469,20 +473,31 @@ function Show-Deck {
                         @{ Name = "Help"; Expression = { $_.Help }; Alignment = "Center" }
                     )
                     
+                    # Render table and prompt to strings to measure height
+                    $tableRenderable = $helpData | Format-SpectreTable -Property $properties -Border Rounded -Title "Navigation Controls" | Format-SpectreAligned -HorizontalAlignment Center
+                    $promptRenderable = "`n[dim]Press any key to return to Deck...[/]" | Format-SpectreAligned -HorizontalAlignment Center
+                    $combinedRenderable = @($tableRenderable, $promptRenderable) | Format-SpectreRows
+                    
+                    # Get the rendered size
+                    $renderSize = Get-SpectreRenderableSize -Renderable $combinedRenderable -ContainerWidth $windowWidth
+                    $contentHeight = $renderSize.Height
+                    
                     # Calculate vertical padding for centering
-                    $windowHeight = $Host.UI.RawUI.WindowSize.Height
-                    $contentHeight = $helpData.Count + 4  # rows + border lines + title + prompt
                     $topPadding = [math]::Max(0, [math]::Floor(($windowHeight - $contentHeight) / 2))
+                    
+                    # Fill screen with blank lines
+                    for ($i = 0; $i -lt $windowHeight; $i++) {
+                        Write-Host (" " * $windowWidth)
+                    }
+                    
+                    # Move cursor back to top and render centered content
+                    Write-Host "`e[H" -NoNewline
                     
                     # Add blank lines for vertical centering
                     Write-Host ("`n" * $topPadding) -NoNewline
                     
-                    # Create table and prompt as renderables
-                    $tableRenderable = $helpData | Format-SpectreTable -Property $properties -Border Rounded -Title "Navigation Controls" | Format-SpectreAligned -HorizontalAlignment Center
-                    $promptRenderable = "`n[dim]Press any key to return to Deck...[/]" | Format-SpectreAligned -HorizontalAlignment Center
-                    
-                    # Combine and output
-                    @($tableRenderable, $promptRenderable) | Format-SpectreRows | Out-SpectreHost
+                    # Output the help content
+                    $combinedRenderable | Out-SpectreHost
                     
                     $null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
                     continue
@@ -602,21 +617,28 @@ function Show-Deck {
             Write-Verbose "Presentation ended"
             
             # Show goodbye message
-            Clear-Host
+            Write-Host "$([char]27)[H" -NoNewline
             $windowHeight = $Host.UI.RawUI.WindowSize.Height
             $windowWidth = $Host.UI.RawUI.WindowSize.Width
             $message = "Goodbye! <3"
             
-            # Center vertically and horizontally
+            # Fill screen with blank lines, then center message
             $verticalPadding = [math]::Floor($windowHeight / 2)
             $horizontalPadding = [math]::Max(0, [math]::Floor(($windowWidth - $message.Length) / 2))
             
-            Write-Host ("`n" * $verticalPadding) -NoNewline
-            Write-Host (" " * $horizontalPadding) -NoNewline
-            Write-Host $message -ForegroundColor Magenta
+            # Write full-width blank lines to cover the entire screen
+            for ($i = 0; $i -lt $windowHeight; $i++) {
+                if ($i -eq $verticalPadding) {
+                    Write-Host (" " * $horizontalPadding) -NoNewline
+                    Write-Host $message -ForegroundColor Magenta -NoNewline
+                    Write-Host (" " * ($windowWidth - $horizontalPadding - $message.Length))
+                } else {
+                    Write-Host (" " * $windowWidth)
+                }
+            }
             
             Start-Sleep -Milliseconds 800
-            Clear-Host
+            Write-Host "$([char]27)[H" -NoNewline
         } catch {
             $errorRecord = [System.Management.Automation.ErrorRecord]::new(
                 $_.Exception,
