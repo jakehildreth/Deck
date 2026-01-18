@@ -97,6 +97,5 @@ function Show-SadFace {
         Write-Host ""
         Write-Host "  Then try running Deck again!" -ForegroundColor White
         Write-Host ""
-        Pause
     }
 }
