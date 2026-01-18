@@ -279,9 +279,46 @@ function ConvertFrom-DeckMarkdown {
                     Write-Verbose "    Override: paginationStyle = $($overrides['paginationStyle'])"
                 }
                 
+                # Parse font overrides with alias normalization
+                if ($tempContent -match '<!--\s*(?:titleFont|h1Font|h1):\s*([\w\-,.]+)\s*-->') {
+                    $overrides['h1'] = $Matches[1]
+                    Write-Verbose "    Override: h1 = $($overrides['h1'])"
+                }
+                if ($tempContent -match '<!--\s*(?:sectionFont|h2Font|h2):\s*([\w\-,.]+)\s*-->') {
+                    $overrides['h2'] = $Matches[1]
+                    Write-Verbose "    Override: h2 = $($overrides['h2'])"
+                }
+                if ($tempContent -match '<!--\s*(?:headerFont|h3Font|h3):\s*([\w\-,.]+)\s*-->') {
+                    $overrides['h3'] = $Matches[1]
+                    Write-Verbose "    Override: h3 = $($overrides['h3'])"
+                }
+                
+                # Parse color overrides with alias normalization
+                if ($tempContent -match '<!--\s*(?:titleColor|h1FontColor|h1Color):\s*(\w+)\s*-->') {
+                    $overrides['h1Color'] = $Matches[1]
+                    Write-Verbose "    Override: h1Color = $($overrides['h1Color'])"
+                }
+                if ($tempContent -match '<!--\s*(?:sectionColor|h2FontColor|h2Color):\s*(\w+)\s*-->') {
+                    $overrides['h2Color'] = $Matches[1]
+                    Write-Verbose "    Override: h2Color = $($overrides['h2Color'])"
+                }
+                if ($tempContent -match '<!--\s*(?:headerColor|h3FontColor|h3Color):\s*(\w+)\s*-->') {
+                    $overrides['h3Color'] = $Matches[1]
+                    Write-Verbose "    Override: h3Color = $($overrides['h3Color'])"
+                }
+                
                 # Remove HTML comments from display content
                 $contentWithoutComments = $trimmed -replace '<!--\s*pagination:\s*(true|false)\s*-->\r?\n?', ''
                 $contentWithoutComments = $contentWithoutComments -replace '<!--\s*paginationStyle:\s*(\w+)\s*-->\r?\n?', ''
+                $contentWithoutComments = $contentWithoutComments -replace '<!--\s*(?:titleFont|h1Font|h1):\s*[\w\-,.]+\s*-->\r?\n?', ''
+                $contentWithoutComments = $contentWithoutComments -replace '<!--\s*(?:sectionFont|h2Font|h2):\s*[\w\-,.]+\s*-->\r?\n?', ''
+                $contentWithoutComments = $contentWithoutComments -replace '<!--\s*(?:headerFont|h3Font|h3):\s*[\w\-,.]+\s*-->\r?\n?', ''
+                $contentWithoutComments = $contentWithoutComments -replace '<!--\s*(?:titleColor|h1FontColor|h1Color):\s*\w+\s*-->\r?\n?', ''
+                $contentWithoutComments = $contentWithoutComments -replace '<!--\s*(?:sectionColor|h2FontColor|h2Color):\s*\w+\s*-->\r?\n?', ''
+                $contentWithoutComments = $contentWithoutComments -replace '<!--\s*(?:headerColor|h3FontColor|h3Color):\s*\w+\s*-->\r?\n?', ''
+                
+                # Trim content after removing comments to eliminate blank lines
+                $contentWithoutComments = $contentWithoutComments.Trim()
                 
                 $slides += [PSCustomObject]@{
                     Number          = $slideNumber

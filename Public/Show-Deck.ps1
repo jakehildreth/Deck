@@ -620,25 +620,30 @@ function Show-Deck {
             Write-Host "$([char]27)[H" -NoNewline
             $windowHeight = $Host.UI.RawUI.WindowSize.Height
             $windowWidth = $Host.UI.RawUI.WindowSize.Width
-            $message = "Goodbye! <3"
+            
+            # Split message to apply different colors
+            $goodbyeText = "Goodbye! "
+            $heart = "<3"
+            $fullMessageLength = $goodbyeText.Length + $heart.Length
             
             # Fill screen with blank lines, then center message
             $verticalPadding = [math]::Floor($windowHeight / 2)
-            $horizontalPadding = [math]::Max(0, [math]::Floor(($windowWidth - $message.Length) / 2))
+            $horizontalPadding = [math]::Max(0, [math]::Floor(($windowWidth - $fullMessageLength) / 2))
             
             # Write full-width blank lines to cover the entire screen
             for ($i = 0; $i -lt $windowHeight; $i++) {
                 if ($i -eq $verticalPadding) {
                     Write-Host (" " * $horizontalPadding) -NoNewline
-                    Write-Host $message -ForegroundColor Magenta -NoNewline
-                    Write-Host (" " * ($windowWidth - $horizontalPadding - $message.Length))
+                    Write-Host $goodbyeText -NoNewline
+                    Write-Host $heart -ForegroundColor Magenta -NoNewline
+                    Write-Host (" " * ($windowWidth - $horizontalPadding - $fullMessageLength))
                 } else {
                     Write-Host (" " * $windowWidth)
                 }
             }
             
             Start-Sleep -Milliseconds 800
-            Write-Host "$([char]27)[H" -NoNewline
+            Clear-Host
         } catch {
             $errorRecord = [System.Management.Automation.ErrorRecord]::new(
                 $_.Exception,
