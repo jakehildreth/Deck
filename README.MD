@@ -74,7 +74,9 @@ The `-Strict` parameter validates:
 * Section Slides - Single `##` heading with medium figlet text  
 * Content Slides - `###` heading with body content  
 * Image Slides - Two-panel layout with content left (60%), image right (40%)  
-* Multi-Column Slides - Split content with `|||` delimiter
+* Multi-Column Slides - Split content with `|||` delimiter  
+* Table Slides - Markdown tables rendered as Spectre.Console tables  
+* Syntax Highlighting - Fenced code blocks with language-aware highlighting via TextMate
 
 #### Image Slides
 
@@ -100,6 +102,33 @@ Web images are supported:
 ### About Our Brand
 Content appears here
 ```
+
+#### Tables
+
+Markdown tables render as rounded Spectre.Console tables:
+
+```markdown
+### Slide Title
+
+| Name   | Role       | Status |
+|-------|----------|-------|
+| Alice  | Engineer   | Active |
+| Bob    | Designer   | Active |
+```
+
+Tables work on content slides, image slides, and multi-column slides.
+
+#### Syntax Highlighting
+
+Fenced code blocks with a language identifier get automatic syntax highlighting powered by [TextMate](https://github.com/nicknisi/TextMate):
+
+````markdown
+```powershell
+Get-Process | Where-Object CPU -gt 100
+```
+````
+
+Renders in a rounded panel with language header and full color tokenization. Supports 60+ languages including PowerShell, Python, C#, JavaScript, Rust, Go, SQL, YAML, and more. Falls back to plain monochrome when a language grammar isn't available.
 
 ### Bullet Points
 
@@ -184,13 +213,15 @@ See [Examples/ExampleDeck.md](Examples/ExampleDeck.md) for a comprehensive demo:
 Show-Deck -Path ./Examples/ExampleDeck.md
 ```
 
-Additional examples:
-- [Examples/ColorTest.md](Examples/ColorTest.md) - Inline color text examples
-- [Examples/HeadingColorsTest.md](Examples/HeadingColorsTest.md) - Heading color examples
-- [Examples/ImageTest.md](Examples/ImageTest.md) - Image slide layouts
-- [Examples/MultiColumnTest.md](Examples/MultiColumnTest.md) - Multi-column layouts
-- [Examples/BulletTest.md](Examples/BulletTest.md) - Bullet reveal behavior
-- [Examples/TitleTest.md](Examples/TitleTest.md) - Title and section slides
+Additional examples in `Examples/Features/`:
+- [ColorTest.md](Examples/Features/ColorTest.md) - Inline color text examples
+- [HeadingColorsTest.md](Examples/Features/HeadingColorsTest.md) - Heading color examples
+- [ImageTest.md](Examples/Features/ImageTest.md) - Image slide layouts
+- [MultiColumnTest.md](Examples/Features/MultiColumnTest.md) - Multi-column layouts
+- [BulletTest.md](Examples/Features/BulletTest.md) - Bullet reveal behavior
+- [TitleTest.md](Examples/Features/TitleTest.md) - Title and section slides
+- [TableTest.md](Examples/Features/TableTest.md) - Markdown table rendering
+- [SyntaxHighlightTest.md](Examples/Features/SyntaxHighlightTest.md) - Code block syntax highlighting
 
 ## Requirements
 
@@ -204,7 +235,7 @@ MIT
 ## Built With
 
 - PowerShell
-- [PwshSpectreConsole](https://github.com/ShaunLawrie/PwshSpectreConsole)
+- [TextMate](https://github.com/trackd/TextMate)
 
 Made with 💜 by [Jake Hildreth](https://jakehildreth.com)
 

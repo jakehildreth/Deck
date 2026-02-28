@@ -22,7 +22,9 @@ paginationStyle: dots
 
 ### What is Deck?
 
-A PowerShell module for creating terminal-based presentations from Markdown files.
+A PowerShell module for creating
+terminal-based presentations
+from Markdown files.
 
 * No GUI required
 * Works cross-platform
@@ -218,6 +220,43 @@ Fourth column with `code` formatting.
 
 ---
 
+### Table Rendering
+
+Markdown tables render as Spectre.Console tables with rounded borders:
+
+| Feature        | Status    | Notes              |
+|---------------|---------|-------------------|
+| Title Slides   | Complete  | Figlet fonts       |
+| Image Slides   | Complete  | Auto-sizing        |
+| Multi-Column   | Complete  | Unlimited columns  |
+| Tables*    | New!  | Spectre tables |
+
+---
+
+### Syntax Highlighting
+
+Fenced code blocks with a language tag get automatic syntax highlighting via TextMate:
+
+```powershell
+Get-Process | Where-Object CPU -gt 100 |
+    Sort-Object CPU -Descending |
+    Select-Object -First 5 Name, CPU, Id
+```
+
+|||
+
+```python
+def fibonacci(n: int) -> list[int]:
+    a, b = 0, 1
+    result = []
+    for _ in range(n):
+        result.append(a)
+        a, b = b, a + b
+    return result
+```
+
+---
+
 ## Customization
 
 ---
@@ -279,9 +318,9 @@ This slide uses `paginationStyle: fraction` override!
 
 ### Learn More!
 
-GitHub: github.com/jakehildreth/Deck   
+deck.jakehildreth.com  
 
-            Built with:
-            PowerShell
-             TextMate
-                <magenta1><3</magenta1>
+     Built with:
+     PowerShell
+      TextMate
+         <magenta1><3</magenta1>
