@@ -1,6 +1,12 @@
-﻿# Get public and private function definition files.
+﻿# Display logo on import (opt-out with $env:DECK_SHOW_LOGO = 'false')
+if ($env:DECK_SHOW_LOGO -ne 'false') {
+    . $PSScriptRoot\Private\Show-Logo.ps1
+}
+
+# Get public and private function definition files.
 $Public = @( Get-ChildItem -Path $PSScriptRoot\Public\*.ps1 -ErrorAction SilentlyContinue -Recurse )
-$Private = @( Get-ChildItem -Path $PSScriptRoot\Private\*.ps1 -ErrorAction SilentlyContinue -Recurse )
+$Private = @( Get-ChildItem -Path $PSScriptRoot\Private\*.ps1 -ErrorAction SilentlyContinue -Recurse |
+    Where-Object { $_.Name -ne 'Show-Logo.ps1' } )
 $Classes = @( Get-ChildItem -Path $PSScriptRoot\Classes\*.ps1 -ErrorAction SilentlyContinue -Recurse )
 $Enums = @( Get-ChildItem -Path $PSScriptRoot\Enums\*.ps1 -ErrorAction SilentlyContinue -Recurse )
 # Get all assemblies
