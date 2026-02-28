@@ -1,470 +1,180 @@
-# Deck Module Implementation Guidelines
+# Deck Module Guidelines
 
-This document defines the design specifications for the Deck PowerShell module, which converts Markdown files into terminal-based presentations using PwshSpectreConsole.
+Terminal presentations from Markdown using PowerShell 7.4+ and Spectre.Console.
 
 ## Code Style
 
-### OTBS (One True Brace Style)
-All PowerShell code in this project must follow OTBS:
-- Opening braces on same line as statement: `if ($condition) {`, `function Test-Thing {`
-- Closing braces on new line
-- `else`, `elseif`, `catch`, and `finally` keywords on same line as closing brace: `} else {`, `} elseif {`, `} catch {`, `} finally {`
-- Never put these keywords on their own line after a closing brace
+- **OTBS** — opening brace on same line, `} else {`, `} catch {`, etc.
+- **4-space indentation**, no tabs
+- **CalVer** versioning: `YYYY.MM.DD.build`
+- **Conventional commits**: `feat(scope):`, `fix(scope):`, `docs(scope):`, etc.
+- **Comment-based help** on all functions with `.SYNOPSIS`, `.DESCRIPTION`, `.PARAMETER`, `.EXAMPLE` (3-5 examples), `.OUTPUTS`, `.NOTES`
+- Cross-platform — no Windows-only assumptions
 
 ### Markdown Parsing Rules
-**ALWAYS skip parsing markup inside code:**
-- Inline code blocks (backticks: `` `code` ``)
-- Code fences (triple backticks: ``` ```code``` ```)
-- When parsing HTML comments, regex patterns, or any markup, temporarily replace code blocks with placeholders before parsing
-- Restore code blocks after parsing is complete
-- Never match or parse content that appears inside code examples
+Always skip parsing markup inside code:
+- Replace inline backtick content with `___INLINECODE_N___` placeholders before processing bold/italic/color/strikethrough
+- Restore placeholders after all formatting passes
+- See [ConvertTo-SpectreMarkup.ps1](Private/ConvertTo-SpectreMarkup.ps1) for the canonical implementation
 
-## Module Overview
-
-### Purpose
-Convert Markdown files into interactive terminal slide presentations with rich ASCII art, colors, and formatting.
+## Architecture
 
 ### Dependencies
-- **PwshSpectreConsole** — Required for rendering
-- Auto-import if available, otherwise attempt `Install-PSResource`
-- On failure: Display sad ASCII art with helpful installation instructions
+- **PwshSpectreConsole** — rendering (tables, panels, aligned content, colors). Loaded at runtime via [Import-DeckDependency.ps1](Private/Import-DeckDependency.ps1); falls back to `Install-PSResource`, then sad ASCII art
+- **TextMate** v0.1.0 — syntax highlighting for fenced code blocks via `Format-TextMate`. Declared in `RequiredModules`
+- **Microsoft.PowerShell.PSResourceGet** 1.1.1
 
-### Public Cmdlets
-- `Show-Deck` — Run a live presentation from a Markdown file
-- `Export-Deck` — Generate a standalone `.ps1` script from a Markdown file
+### Public API
+- `Show-Deck` — the only exported cmdlet. Accepts `-Path` (file or URL), `-Strict` for validation, plus frontmatter overrides
 
-## Input Format
+### Slide Types (auto-detected)
+| Type | Detection | Renderer |
+|------|-----------|----------|
+| Title | `#` heading only | [Show-TitleSlide.ps1](Private/Show-TitleSlide.ps1) |
+| Section | `##` heading only | [Show-SectionSlide.ps1](Private/Show-SectionSlide.ps1) |
+| Content | `###` heading + body | [Show-ContentSlide.ps1](Private/Show-ContentSlide.ps1) |
+| Image | Content + `![alt](path)` | [Show-ImageSlide.ps1](Private/Show-ImageSlide.ps1) |
+| Multi-Column | Content split by `\|\|\|` | [Show-MultiColumnSlide.ps1](Private/Show-MultiColumnSlide.ps1) |
 
-### Frontmatter (YAML)
-Standard YAML frontmatter with `---` delimiters at the top of the file:
+### Key Private Functions
+| Function | Purpose |
+|----------|---------|
+| [ConvertFrom-DeckMarkdown](Private/ConvertFrom-DeckMarkdown.ps1) | Parse YAML frontmatter + split slides |
+| [ConvertTo-SpectreMarkup](Private/ConvertTo-SpectreMarkup.ps1) | Bold/italic/code/color → Spectre markup |
+| [ConvertTo-CodeBlockSegments](Private/ConvertTo-CodeBlockSegments.ps1) | Split content into Text/Code/Table segments |
+| [New-CodeBlockPanel](Private/New-CodeBlockPanel.ps1) | Fenced code → syntax-highlighted Spectre Panel via TextMate |
+| [New-TableRenderable](Private/New-TableRenderable.ps1) | Markdown table → Spectre Table via Format-SpectreTable |
+| [New-FigletText](Private/New-FigletText.ps1) | Heading → figlet renderable from bundled .flf fonts |
+| [Get-SlideNavigation](Private/Get-SlideNavigation.ps1) | Keyboard input → navigation commands |
+| [Get-TerminalDimensions](Private/Get-TerminalDimensions.ps1) | Terminal width/height detection |
+| [Get-BorderStyleFromSettings](Private/Get-BorderStyleFromSettings.ps1) | Resolve border style enum |
+| [Get-SpectreColorFromSettings](Private/Get-SpectreColorFromSettings.ps1) | Resolve color names/hex to Spectre colors |
+| [Get-PaginationText](Private/Get-PaginationText.ps1) | Render pagination in configured style |
+| [Import-DeckDependency](Private/Import-DeckDependency.ps1) | PwshSpectreConsole auto-install |
+| [Show-SadFace](Private/Show-SadFace.ps1) | Dependency failure ASCII art |
+| [Show-Logo](Private/Show-Logo.ps1) | Module logo display |
 
-```yaml
----
-background: black          # Named color or hex (e.g., "#1a1a1a")
-foreground: white          # Named color or hex (e.g., "#FFFFFF")
-border: magenta            # Named color or hex (e.g., "#FF00FF")
-header: "Presentation Title"  # Optional header text
-footer: "© 2026"           # Optional footer text
-pagination: false          # Show slide numbers (default: false)
-paginationStyle: minimal   # Style: minimal, fraction, text, progress, dots
-borderStyle: rounded       # Style: rounded, square, double, heavy, none
-h1Font: default            # Figlet font for # (title slides)
-h2Font: default            # Figlet font for ## (section slides)
-h3Font: default            # Figlet font for ### (content headers)
----
-```
+### Content Rendering Pipeline
+1. `ConvertFrom-DeckMarkdown` parses frontmatter + splits into slides
+2. Each slide dispatches to its type renderer
+3. Content slides: inline formatting via `ConvertTo-SpectreMarkup`, code blocks via `New-CodeBlockPanel`, tables via `New-TableRenderable`
+4. Multi-column slides: `ConvertTo-CodeBlockSegments` splits into Text/Code/Table segments per column
+5. All renderables composed into full-height bordered panels with optional pagination
 
-### Slide Delimiters
-Slides are separated by horizontal rules: `---`, `***`, or `___`
-
-### Slide Type Detection
-
-Auto-detect slide type based on content, with optional override via `<!-- type: xxx -->`:
-
-| Type | Auto-Detection Rule |
-|------|---------------------|
-| `title` | `#` heading only, no other content |
-| `section` | `##` heading only, no other content |
-| `1column` | Default for content slides |
-| `2column` | Has two distinct content blocks |
-| `left` | Has image positioned on left |
-| `right` | Has image positioned on right |
-
-### Content Rules
-- `#` — Title slide heading (large figlet text, full screen) - **Cannot have additional content**
-- `##` — Section slide heading (medium figlet text, full screen) - **Cannot have additional content**
-- `###` — Regular slide header (smaller figlet text above content)
-- `*` item — Bullet points revealed one at a time
-- `-` item — Bullet points shown all at once
-- Regular text — Displayed as paragraphs
-- `![alt](path)` — Images for Left/Right slide layouts
-- Fenced code blocks — Syntax highlighted when language specified
-
-**Important:** Title (`#`) and Section (`##`) slides must contain ONLY the heading text with no additional content. Use `###` headings for slides that need both a header and body content.
-
-### Per-Slide Overrides
-Use HTML comments to override settings for individual slides:
-
-```markdown
-<!-- type: 2column -->
-<!-- background: #000033 -->
-<!-- border: cyan -->
-```
-
-## Navigation Controls
-
-### Forward (Next Slide/Bullet)
-- Right Arrow (→)
-- Down Arrow (↓)
-- Space
-- Enter
-- `n`
-- Page Down
-
-### Backward (Previous Slide)
-- Left Arrow (←)
-- Up Arrow (↑)
-- Backspace
-- `p`
-- Page Up
-
-### Exit
-- `Ctrl+C`
-- `Esc`
-
-### Bullet Reveal Behavior
-Forward keys reveal the next `*` bullet. Once all bullets are shown, the next forward keypress advances to the next slide.
-
-### Content Overflow Scrolling
-When content exceeds terminal height:
-- Up/Down arrows scroll within the slide
-- At top of content, Up arrow goes to previous slide
-- At bottom of content, Down arrow goes to next slide
-- Other navigation keys (Left/Right, Space, Enter, n/p, Page Up/Down) navigate slides directly
-
-## Visual Styling
-
-### Pagination Styles
-When `pagination: true`, display using configured style:
-- `minimal` — Just the slide number: `3` (default)
-- `fraction` — Fraction format: `3/10`
-- `text` — Full text: `Slide 3 of 10`
-- `progress` — Progress bar: `████░░░░░░`
-- `dots` — Dot indicators: `○ ○ ● ○ ○ ○ ○ ○ ○ ○`
-
-### Border Styles
-- `rounded` — Smooth corners: `╭───╮` (default)
-- `square` — Sharp corners: `┌───┐`
-- `double` — Double lines: `╔═══╗`
-- `heavy` — Thick lines: `┏━━━┓`
-- `none` — No border
-
-### Figlet Fonts
-- Use Spectre.Console's built-in default font as the default
-- Support bundled `.flf` font files
-- Allow custom font paths via `titleFont`, `sectionFont`, `headerFont` settings
-
-### Inline Markdown Formatting
-Support these inline styles:
-- `**bold**` or `__bold__` → Spectre `[bold]text[/]`
-- `*italic*` or `_italic_` → Spectre `[italic]text[/]`
-- `` `code` `` → Styled inline code
-- `~~strikethrough~~` → Spectre `[strikethrough]text[/]`
-
-### Code Blocks
-- With language specified: Syntax highlighted
-- Without language: Plain monospace text (no default language)
-
-## Cmdlet Parameters
-
-### Show-Slides
+## Build and Test
 
 ```powershell
-Show-Slides
-    [-Path] <string>           # Mandatory: Path to Markdown file
-    [-Background <string>]     # Override background color
-    [-Foreground <string>]     # Override foreground color
-    [-Border <string>]         # Override border color
-    [-Header <string>]         # Override header text
-    [-Footer <string>]         # Override footer text
-    [-Pagination]              # Enable pagination
-    [-PaginationStyle <string>] # Pagination style
-    [-BorderStyle <string>]    # Border style
-    [-Strict]                  # Fail on validation errors
-    [-Watch]                   # Auto-reload on file changes
+# import locally
+Import-Module ./Deck.psd1
+
+# run tests (Pester v5)
+Invoke-Pester ./Tests/
+
+# run a presentation
+Show-Deck -Path ./Examples/ExampleDeck.md
+
+# validate before presenting
+Show-Deck -Path ./presentation.md -Strict
 ```
 
-### Export-Slides
+## Project Conventions
 
-```powershell
-Export-Slides
-    [-Path] <string>           # Mandatory: Path to Markdown file
-    [-OutputPath <string>]     # Output .ps1 file path
-    [-Background <string>]     # Override background color
-    [-Foreground <string>]     # Override foreground color
-    [-Border <string>]         # Override border color
-    [-Header <string>]         # Override header text
-    [-Footer <string>]         # Override footer text
-    [-Pagination]              # Enable pagination
-    [-PaginationStyle <string>] # Pagination style
-    [-BorderStyle <string>]    # Border style
-```
+### New slide renderable pattern
+When adding a new content type (like tables or code blocks):
+1. Create a `New-*Renderable.ps1` in Private/ that returns `[Spectre.Console.IRenderable]`
+2. Add detection regex to `Show-ContentSlide.ps1`, `Show-ImageSlide.ps1`, and `ConvertTo-CodeBlockSegments.ps1`
+3. Dispatch in the segment rendering loop alongside existing Code/Table/Text branches
+4. Add the file to `FileList` in `Deck.psd1`
+5. Create a Pester test in Tests/ and a feature example in Examples/Features/
 
-## Validation and Error Handling
+### Inline code placeholder pattern
+`ConvertTo-SpectreMarkup` replaces backtick content with `___INLINECODE_N___` before bold/italic/color passes, then restores after. This prevents formatting regex from matching inside code spans. Any new inline formatting pass must run between the replace and restore steps.
 
-### Image Validation
-During load, validate all images:
-1. Check file exists
-2. Check file is valid image format
-3. Check terminal supports image rendering
+### Table rendering
+Uses `Format-SpectreTable` from PwshSpectreConsole (not raw `[Spectre.Console.Table]` construction). Pipe `[PSCustomObject]` array with `-Border Rounded`. See [New-TableRenderable.ps1](Private/New-TableRenderable.ps1).
 
-**Default behavior:** Warn in console, auto-continue with alt text in styled box for broken images
-
-**With `-Strict`:** Fail fast with a clear list of all issues
-
-### Empty Slides
-When an empty slide is detected:
-1. Show warning for each empty slide
-2. Prompt user: Skip or Keep
-3. If Keep: Add `<!-- intentionally blank -->` comment to markdown file
-4. Slides with `<!-- intentionally blank -->` display as blank without warning
-
-### No Slide Delimiters
-If no horizontal rules found in file:
-- Display warning to user
-- Treat entire file as single slide
-- Continue with presentation
-
-### PwshSpectreConsole Load Failure
-1. Attempt to import module
-2. If not found, attempt `Install-PSResource PwshSpectreConsole`
-3. On failure: Display sad ASCII art with helpful manual installation instructions
-4. Exit gracefully
-
-## Watch Mode
-
-When `-Watch` is specified on `Show-Slides`:
-- Monitor the markdown file for changes
-- On file change, reload and re-render the presentation
-- Preserve current slide position if possible
-- Useful for editing in one window while previewing in another
+### Syntax highlighting
+Uses `Format-TextMate` with `Test-TextMate -Language` for capability check. Falls back to plain monochrome `[Spectre.Console.Markup]` when language grammar unavailable. 60+ languages supported. See [New-CodeBlockPanel.ps1](Private/New-CodeBlockPanel.ps1).
 
 ## Module Structure
 
 ```
 Deck/
-├── Deck.psd1                          # Module manifest
-├── Deck.psm1                          # Module loader
+├── Deck.psd1                              # Manifest (CalVer, Core-only, PS 7.4+)
+├── Deck.psm1                              # Dot-source loader
+├── Deck.png                               # Logo
+├── Build/
+│   └── Build-Module.ps1
 ├── Public/
-│   ├── Show-Deck.ps1                  # Live presentation cmdlet
-│   └── Export-Deck.ps1                # Export to script cmdlet (future)
-├── Private/
-│   ├── ConvertFrom-DeckMarkdown.ps1   # Markdown parser
-│   ├── Get-SlideNavigation.ps1        # Input handling
-│   ├── Import-DeckDependency.ps1      # Dependency management
-│   ├── Show-ContentSlide.ps1          # Content slide renderer
-│   ├── Show-SadFace.ps1               # Failure ASCII art
-│   ├── Show-SectionSlide.ps1          # Section slide renderer
-│   └── Show-TitleSlide.ps1            # Title slide renderer
-├── Fonts/                             # Bundled .flf figlet fonts
-│   ├── small.flf                      # Section slide font
-│   └── mini.flf                       # Content header font
-├── Tests/                             # Pester tests
-│   ├── Show-Deck.Tests.ps1
+│   └── Show-Deck.ps1                      # Only exported cmdlet
+├── Private/                               # 19 internal functions
+│   ├── ConvertFrom-DeckMarkdown.ps1
+│   ├── ConvertTo-CodeBlockSegments.ps1
+│   ├── ConvertTo-SpectreMarkup.ps1
+│   ├── Get-BorderStyleFromSettings.ps1
+│   ├── Get-PaginationText.ps1
+│   ├── Get-SlideNavigation.ps1
+│   ├── Get-SpectreColorFromSettings.ps1
+│   ├── Get-TerminalDimensions.ps1
+│   ├── Import-DeckDependency.ps1
+│   ├── New-CodeBlockPanel.ps1
+│   ├── New-FigletText.ps1
+│   ├── New-TableRenderable.ps1
+│   ├── Show-ContentSlide.ps1
+│   ├── Show-ImageSlide.ps1
+│   ├── Show-Logo.ps1
+│   ├── Show-MultiColumnSlide.ps1
+│   ├── Show-SadFace.ps1
+│   ├── Show-SectionSlide.ps1
+│   └── Show-TitleSlide.ps1
+├── Fonts/                                 # 25 bundled .flf figlet fonts
+├── Tests/                                 # 11 Pester test files
+│   ├── ConvertFrom-DeckMarkdown.Tests.ps1
+│   ├── ConvertTo-SpectreMarkup.Tests.ps1
 │   ├── Get-SlideNavigation.Tests.ps1
-│   └── Show-ContentSlide.Tests.ps1
-└── Examples/
-    ├── FullTest.md                    # Comprehensive demo
-    └── BulletTest.md                  # Bullet reveal demo
+│   ├── Import-DeckDependency.Tests.ps1
+│   ├── New-CodeBlockPanel.Tests.ps1
+│   ├── New-TableRenderable.Tests.ps1
+│   ├── Show-ContentSlide.Tests.ps1
+│   ├── Show-Deck.Tests.ps1
+│   ├── Show-MultiColumnSlide.Tests.ps1
+│   ├── Show-SectionSlide.Tests.ps1
+│   └── Show-TitleSlide.Tests.ps1
+├── Examples/
+│   ├── ExampleDeck.md                     # Comprehensive demo
+│   └── Features/                          # Per-feature test decks
+│       ├── BulletTest.md
+│       ├── ColorTest.md
+│       ├── FontAliasTest.md
+│       ├── FontShowcase.md
+│       ├── H1FontTest.md
+│       ├── H1H2H3Test.md
+│       ├── HeadingColorsTest.md
+│       ├── ImageTest.md
+│       ├── MultiColumnTest.md
+│       ├── NewFontsTest.md
+│       ├── OverrideDebugTest.md
+│       ├── OverrideTest.md
+│       ├── PaginationTest.md
+│       ├── SyntaxHighlightTest.md
+│       ├── TableTest.md
+│       ├── TitleTest.md
+│       └── WebImageTest.md
+└── Ignore/
+    └── PLAN.md                            # Feature planning docs
 ```
 
-## Implementation Phases
+## Roadmap (Unimplemented)
 
-### Phase 1: Foundation
-- [x] **Module structure** — Create basic manifest (Deck.psd1), module file (Deck.psm1), and folder structure (Public/, Private/, Fonts/, Examples/)
-- [x] **Dependency loader** — Implement PwshSpectreConsole loading with fallback to Install-PSResource (with sad face ASCII art on failure)
-- [x] **Test** — Verify module loads correctly and handles missing dependencies gracefully
+### Watch Mode
+`-Watch` parameter on `Show-Deck` using `FileSystemWatcher` to auto-reload on file changes with slide position preservation.
 
-### Phase 2: Parsing
-- [x] **YAML frontmatter parser** — Extract settings from markdown frontmatter
-- [x] **Slide splitter** — Split markdown by horizontal rules (---, ***, ___) into individual slide chunks
-- [x] **Test** — Parse a simple markdown file and verify correct extraction of settings and slide content
+### Export Functionality
+`Export-Deck` cmdlet to generate standalone `.ps1` scripts with embedded dependencies.
 
-### Phase 3: First Slide Type
-- [x] **Title slide renderer** — Implement complete Title slide rendering (# heading with large figlet text)
-- [x] **Basic navigation** — Simple "press any key to exit" functionality
-- [x] **Test** — Display a simple title slide presentation end-to-end
-
-### Phase 4: Core Slide Types
-- [x] **Section slide renderer** — Implement Section slide (## heading with medium figlet text)
-- [x] **1-column slide renderer** — Implement basic content slide with header and content
-- [x] **Test** — Display presentation with Title, Section, and 1-column slides
-
-### Phase 5: Advanced Slide Types
-- [x] **Multi-column slide renderer** — Implement multi-column layout with ||| delimiter
-- [x] **Image slide renderers** — Implement image-based layouts (left/right 60/40 split)
-- [x] **Test** — Display presentation with all slide types
-
-### Phase 6: Full Navigation
-- [x] **Complete navigation** — Implement all navigation keys (arrows, space, enter, n/p, page up/down)
-- [x] **Bullet reveal** — Implement progressive bullet point reveal for `*` items
-- [x] **Backward bullet navigation** — Hide bullets when navigating backward
-- [x] **Test** — Verify navigation key handlers (77 tests passing)
-
-**Future Enhancement:**
-- Content scrolling for overflow (Up/Down arrows scroll within slide when content exceeds viewport, navigate at boundaries)
-
-### Phase 6.5: Visual Polish
-- [x] **Full-height borders** — All slide types fill terminal viewport
-- [x] **Consistent border heights** — Fixed padding calculations to prevent shifting
-- [x] **Accurate height measurement** — Account for horizontal padding in figlet wrapping
-- [x] **Cursor hiding** — Hide cursor during presentation
-- [x] **Exit message** — Display "Goodbye! <3" in magenta on exit
-- [x] **Help screen** — Press ? to show navigation controls
-
-### Phase 7: Validation & Polish
-- [x] **Image validation** — Implement pre-load validation with -Strict mode
-- [x] **Empty slide handling** — Auto-skip empty slides, support `<!-- intentionally blank -->` comment
-- [x] **Markdown formatting** — Implement bold, italic, inline code, strikethrough conversion
-- [x] **Code blocks** — Implement syntax highlighting support
-- [x] **Color support** — Implement `<colorname>text</colorname>` and `<span style="color:name">` tags
-- [x] **Test** — Verify markdown formatting and code block features
-
-### Phase 7.5: Documentation
-- [x] **Comment-based help** — Comprehensive help for all 18 functions with 3-5 examples each
-- [x] **Example presentations** — Create sample markdown files demonstrating all features
-- [x] **README** — Write comprehensive project documentation
-
-### Phase 8: Watch Mode
-- [ ] **File watcher** — Implement -Watch parameter with FileSystemWatcher
-- [ ] **Auto-reload** — Reload and re-render on file changes with position preservation
-- [ ] **Test** — Edit markdown file while watching and verify reload behavior
-
-### Phase 9: Export Functionality
-- [ ] **Export-Deck cmdlet** — Implement standalone script generation
-- [ ] **Embedded dependencies** — Ensure exported script is self-contained
-- [ ] **Test** — Generate and run exported presentation script
-
-### Phase 10: Presenter Mode
-- [ ] **Dual window support** — Launch presenter and audience windows
-- [ ] **Notes parsing** — Extract presenter notes from `<!-- [NOTES] -->` blocks
-- [ ] **Next slide preview** — Show upcoming slide content in presenter view
-- [ ] **Presenter display** — Current slide notes + next slide preview in split-pane layout
-- [ ] **Synchronized navigation** — Control main presentation from presenter window
-- [ ] **Timer display** — Elapsed time display in presenter view
-- [ ] **Test** — Verify dual-window control and note display
-
-#### Presenter Mode Specifications
-
-**Activation:**
-```powershell
-Show-Deck -Path presentation.md -PresenterMode
-```
-
-**Notes Syntax:**
-```markdown
-### Slide Title
-
-Content for the slide
-
-<!-- [NOTES]
-Remember to mention the key point here.
-Ask if there are questions about this topic.
-Transition smoothly to the next section.
-Demo the live feature if time permits.
--->
-```
-
-**Presenter Window Layout:**
-
-```
-┌─ Deck Presenter View ─────────────────────────────────────────────────────────┐
-│ Slide 3 of 10                                      Elapsed: [00:05:32]        │
-├───────────────────────────────────┬───────────────────────────────────────────┤
-│ Current Slide Notes:              │ Next Slide Preview:                       │
-│                                   │                                           │
-│ Remember to mention the key       │  ### Implementation Details               │
-│ point here.                       │                                           │
-│                                   │  * First implementation step              │
-│ Ask if there are questions about  │  * Second implementation step             │
-│ this topic.                       │  * Third implementation step              │
-│                                   │                                           │
-│ Transition smoothly to the next   │  ```powershell                            │
-│ section.                          │  Get-Process | Where CPU -gt 100          │
-│                                   │  ```                                      │
-│ Demo the live feature if time     │                                           │
-│ permits.                          │                                           │
-│                                   │                                           │
-└───────────────────────────────────┴───────────────────────────────────────────┘
-Navigation: ← → (navigate) | ESC (exit) | ? (help)
-```
-
-**Notes Format:**
-- Use `<!-- [NOTES] ... -->` HTML comment blocks
-- Place at the end of each slide (after content)
-- Content can be free-form text (not required to be bullets)
-- Notes are parsed and displayed as-is in presenter window
-- Notes are never visible in audience view
-
-**Layout:**
-- Top bar: Slide counter and elapsed timer
-- Left pane (50%): Current slide notes in plain text format
-- Right pane (50%): Next slide preview showing final state (all bullets visible)
-- Bottom: Navigation key hints
-
-**Requirements:**
-- Presenter window controls both displays
-- Navigation in presenter window advances both views
-- Notes persist across slide changes (no progressive reveal)
-- Next slide preview shows final state (all bullets visible)
-- Timer starts when presentation begins
-- Both windows close on exit from either window
-- Graceful fallback if dual terminals not supported
-
-#### Technical Implementation: Named Pipes IPC
-
-**Approach:** Use System.IO.Pipes.NamedPipeServerStream for inter-process communication
-
-**Why Named Pipes:**
-- Cross-platform in .NET 8 (PowerShell 7.4+)
-  - Windows: Native named pipes
-  - Linux/macOS: Unix domain sockets (seamless)
-- Low latency (< 1ms)
-- Built-in message framing
-- Connection-oriented (detect disconnection)
-- Automatic cleanup on process termination
-- No port management or firewall concerns
-
-**Architecture:**
-```
-Presenter Window (Server/Controller)
-├── Named Pipe Server: "Deck_$PID"
-├── Slide state tracking
-├── Navigation input handling
-└── Sends: { Command: "NextSlide", SlideNum: 5, Timestamp: ... }
-
-Audience Window (Client/Follower)
-├── Named Pipe Client connects to "Deck_$PID"
-├── Non-blocking read loop
-├── Slide rendering
-└── Receives commands and updates display
-```
-
-**Implementation Files:**
-- `Private/Start-PresenterPipe.ps1` - Create named pipe server
-- `Private/Connect-AudiencePipe.ps1` - Connect as pipe client
-- `Private/Send-NavigationEvent.ps1` - Write JSON commands to pipe
-- `Private/Receive-NavigationEvent.ps1` - Non-blocking read from pipe
-- Update `Show-Deck.ps1` - Add `-PresenterMode`, `-AudienceMode`, `-PipeName` parameters
-
-**Sample Implementation:**
-```powershell
-# Presenter starts server and launches audience window
-$pipeName = "Deck_$PID"
-$pipe = [System.IO.Pipes.NamedPipeServerStream]::new(
-    $pipeName,
-    [System.IO.Pipes.PipeDirection]::InOut,
-    1,
-    [System.IO.Pipes.PipeTransmissionMode]::Message
-)
-
-# Launch audience window
-Start-Process pwsh -ArgumentList @(
-    "-NoProfile"
-    "-Command"
-    "Show-Deck -Path '$Path' -AudienceMode -PipeName '$pipeName'"
-)
-
-# Wait for connection
-$pipe.WaitForConnectionAsync().Wait()
-$writer = [System.IO.StreamWriter]::new($pipe)
-$writer.AutoFlush = $true
-
-# Send navigation commands
-$writer.WriteLine((@{ Command = 'NextSlide'; Slide = 5 } | ConvertTo-Json))
-```
-
-**Error Handling:**
-- Connection timeout (5 seconds) if audience fails to connect
-- Pipe disconnection detection → close both windows
-- Process exit monitoring → cleanup and terminate peer
+### Presenter Mode
+Dual-window support via named pipes IPC (`System.IO.Pipes.NamedPipeServerStream`):
+- `Show-Deck -PresenterMode` launches controller + audience windows
+- Presenter notes via `<!-- [NOTES] ... -->` HTML comment blocks
+- Next slide preview, elapsed timer, synchronized navigation
+- Cross-platform via .NET named pipes (Unix domain sockets on macOS/Linux)
