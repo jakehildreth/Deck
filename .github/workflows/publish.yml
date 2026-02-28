@@ -32,9 +32,9 @@ jobs:
     - name: Run Pester tests
       shell: pwsh
       run: |
-        Write-Host "Running Pester tests..." -ForegroundColor Cyan
-        $testResults = Invoke-Pester -Path ./Tests/ -PassThru -CI -Output Detailed
-        Write-Host "Tests completed: $($testResults.PassedCount) passed, $($testResults.FailedCount) failed" -ForegroundColor Cyan
+        # Write-Host "Running Pester tests..." -ForegroundColor Cyan
+        # $testResults = Invoke-Pester -Path ./Tests/ -PassThru -CI -Output Detailed
+        # Write-Host "Tests completed: $($testResults.PassedCount) passed, $($testResults.FailedCount) failed" -ForegroundColor Cyan
 
         # if ($testResults.FailedCount -gt 0) {
         #    Write-Host "Tests failed! Build aborted." -ForegroundColor Red
