@@ -236,31 +236,56 @@ Key benefits of our solution.
 
             # Process body content with code blocks and bullet filtering
             if ($bodyContent) {
-                # Parse code blocks first
+                # Parse code blocks and tables first
                 $codeBlockPattern = '(?s)```(\w+)?\r?\n(.*?)\r?\n```'
+                $tablePattern = '(?m)^(\|.+\|)\r?\n(\|[\s:|\-]+\|)\r?\n((?:\|.+\|\r?\n?)+)'
                 $segments = [System.Collections.Generic.List[object]]::new()
                 $lastIndex = 0
                 
+                # Collect all matches (code blocks and tables) and sort by position
+                $allMatches = [System.Collections.Generic.List[object]]::new()
+                
                 foreach ($match in [regex]::Matches($bodyContent, $codeBlockPattern)) {
-                    # Add text before code block
-                    if ($match.Index -gt $lastIndex) {
-                        $textBefore = $bodyContent.Substring($lastIndex, $match.Index - $lastIndex).Trim()
+                    $allMatches.Add(@{
+                        Type     = 'Code'
+                        Match    = $match
+                        Index    = $match.Index
+                        Length   = $match.Length
+                        Language = $match.Groups[1].Value
+                        Content  = $match.Groups[2].Value.Trim()
+                    })
+                }
+                
+                foreach ($match in [regex]::Matches($bodyContent, $tablePattern)) {
+                    $allMatches.Add(@{
+                        Type     = 'Table'
+                        Match    = $match
+                        Index    = $match.Index
+                        Length   = $match.Length
+                        RawTable = $match.Value
+                    })
+                }
+                
+                $allMatches = $allMatches | Sort-Object -Property Index
+                
+                foreach ($item in $allMatches) {
+                    if ($item.Index -gt $lastIndex) {
+                        $textBefore = $bodyContent.Substring($lastIndex, $item.Index - $lastIndex).Trim()
                         if ($textBefore) {
                             $segments.Add(@{ Type = 'Text'; Content = $textBefore })
                         }
                     }
                     
-                    # Add code block
-                    $segments.Add(@{
-                        Type = 'Code'
-                        Language = $match.Groups[1].Value
-                        Content = $match.Groups[2].Value.Trim()
-                    })
+                    if ($item.Type -eq 'Code') {
+                        $segments.Add(@{ Type = 'Code'; Language = $item.Language; Content = $item.Content })
+                    } else {
+                        $segments.Add(@{ Type = 'Table'; RawTable = $item.RawTable })
+                    }
                     
-                    $lastIndex = $match.Index + $match.Length
+                    $lastIndex = $item.Index + $item.Length
                 }
                 
-                # Add remaining text after last code block
+                # Add remaining text after last item
                 if ($lastIndex -lt $bodyContent.Length) {
                     $textAfter = $bodyContent.Substring($lastIndex).Trim()
                     if ($textAfter) {
@@ -268,7 +293,7 @@ Key benefits of our solution.
                     }
                 }
                 
-                # If no code blocks found, treat entire content as text
+                # If no code blocks or tables found, treat entire content as text
                 if ($segments.Count -eq 0) {
                     $segments.Add(@{ Type = 'Text'; Content = $bodyContent })
                 }
@@ -289,6 +314,11 @@ Key benefits of our solution.
                         $codePanel = New-CodeBlockPanel @codeBlockParams
                         
                         $leftRenderables.Add($codePanel)
+                    } elseif ($segment.Type -eq 'Table') {
+                        # Render markdown table via Format-SpectreTable
+                        Write-Verbose '  Table detected in image slide left panel'
+                        $tableRenderable = New-TableRenderable -RawTable $segment.RawTable
+                        $leftRenderables.Add($tableRenderable)
                     } else {
                         # Filter bullets in text segments
                         $lines = $segment.Content -split "`r?`n"

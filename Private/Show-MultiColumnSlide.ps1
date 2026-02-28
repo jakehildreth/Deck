@@ -255,6 +255,11 @@ Get-Process | Where-Object CPU -gt 100
                             $codePanel = New-CodeBlockPanel @codeBlockParams
                             
                             $columnParts.Add($codePanel)
+                        } elseif ($segment.Type -eq 'Table') {
+                            # Render markdown table via Format-SpectreTable
+                            Write-Verbose '  Table detected in multi-column slide'
+                            $tableRenderable = New-TableRenderable -RawTable $segment.RawTable
+                            $columnParts.Add($tableRenderable)
                         } else {
                             # Render text
                             $textLines = $segment.Content -split "`r?`n" | ForEach-Object {

@@ -149,29 +149,63 @@ console.log("Hello!");
     }
 
     $codeBlockPattern = '(?s)```(\w+)?\r?\n(.*?)\r?\n```'
+    $tablePattern = '(?m)^(\|.+\|)\r?\n(\|[\s:|\-]+\|)\r?\n((?:\|.+\|\r?\n?)+)'
     $segments = [System.Collections.Generic.List[object]]::new()
     $lastIndex = 0
     
+    # Collect all matches (code blocks and tables) and sort by position
+    $allMatches = [System.Collections.Generic.List[object]]::new()
+    
     foreach ($match in [regex]::Matches($Content, $codeBlockPattern)) {
-        # Add text before code block
-        if ($match.Index -gt $lastIndex) {
-            $textBefore = $Content.Substring($lastIndex, $match.Index - $lastIndex).Trim()
+        $allMatches.Add(@{
+            Type     = 'Code'
+            Match    = $match
+            Index    = $match.Index
+            Length   = $match.Length
+            Language = $match.Groups[1].Value
+            Content  = $match.Groups[2].Value.Trim()
+        })
+    }
+    
+    foreach ($match in [regex]::Matches($Content, $tablePattern)) {
+        $allMatches.Add(@{
+            Type     = 'Table'
+            Match    = $match
+            Index    = $match.Index
+            Length   = $match.Length
+            RawTable = $match.Value
+        })
+    }
+    
+    # Sort by position in document
+    $allMatches = $allMatches | Sort-Object -Property Index
+    
+    foreach ($item in $allMatches) {
+        # Add text before this item
+        if ($item.Index -gt $lastIndex) {
+            $textBefore = $Content.Substring($lastIndex, $item.Index - $lastIndex).Trim()
             if ($textBefore) {
                 $segments.Add(@{ Type = 'Text'; Content = $textBefore })
             }
         }
         
-        # Add code block
-        $segments.Add(@{
-            Type = 'Code'
-            Language = $match.Groups[1].Value
-            Content = $match.Groups[2].Value.Trim()
-        })
+        if ($item.Type -eq 'Code') {
+            $segments.Add(@{
+                Type     = 'Code'
+                Language = $item.Language
+                Content  = $item.Content
+            })
+        } else {
+            $segments.Add(@{
+                Type     = 'Table'
+                RawTable = $item.RawTable
+            })
+        }
         
-        $lastIndex = $match.Index + $match.Length
+        $lastIndex = $item.Index + $item.Length
     }
     
-    # Add remaining text after last code block
+    # Add remaining text after last item
     if ($lastIndex -lt $Content.Length) {
         $textAfter = $Content.Substring($lastIndex).Trim()
         if ($textAfter) {
@@ -179,7 +213,7 @@ console.log("Hello!");
         }
     }
     
-    # If no code blocks found, treat entire content as text
+    # If no code blocks or tables found, treat entire content as text
     if ($segments.Count -eq 0) {
         $segments.Add(@{ Type = 'Text'; Content = $Content })
     }

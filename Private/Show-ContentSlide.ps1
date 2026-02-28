@@ -162,15 +162,16 @@ Get-Process | Select-Object Name
                 $bodyContent = $Slide.Content.Trim()
             }
 
-            # Parse code blocks and images FIRST before any bullet filtering
+            # Parse code blocks, images, and tables FIRST before any bullet filtering
             $codeBlockPattern = '(?s)```(\w+)?\r?\n(.*?)\r?\n```'
             $imagePattern = '!\[([^\]]*)\]\(([^)]+)\)(?:\{width=(\d+)\})?'
+            $tablePattern = '(?m)^(\|.+\|)\r?\n(\|[\s:|\-]+\|)\r?\n((?:\|.+\|\r?\n?)+)'
             $segments = [System.Collections.Generic.List[object]]::new()
             $lastIndex = 0
             $progressiveBulletCount = 0
             
             if ($bodyContent) {
-                # Collect all matches (code blocks and images) and sort by position
+                # Collect all matches (code blocks, images, and tables) and sort by position
                 $allMatches = [System.Collections.Generic.List[object]]::new()
                 
                 foreach ($match in [regex]::Matches($bodyContent, $codeBlockPattern)) {
@@ -197,6 +198,16 @@ Get-Process | Select-Object Name
                     })
                 }
                 
+                foreach ($match in [regex]::Matches($bodyContent, $tablePattern)) {
+                    $allMatches.Add(@{
+                        Type = 'Table'
+                        Match = $match
+                        Index = $match.Index
+                        Length = $match.Length
+                        RawTable = $match.Value
+                    })
+                }
+                
                 # Sort by position in document
                 $allMatches = $allMatches | Sort-Object -Property Index
                 
@@ -210,9 +221,11 @@ Get-Process | Select-Object Name
                         }
                     }
                     
-                    # Add the item (code or image)
+                    # Add the item (code, image, or table)
                     if ($item.Type -eq 'Code') {
                         $segments.Add(@{ Type = 'Code'; Language = $item.Language; Content = $item.Content })
+                    } elseif ($item.Type -eq 'Table') {
+                        $segments.Add(@{ Type = 'Table'; RawTable = $item.RawTable })
                     } else {
                         $segments.Add(@{ Type = 'Image'; AltText = $item.AltText; Path = $item.Path; Width = $item.Width })
                     }
@@ -239,8 +252,8 @@ Get-Process | Select-Object Name
                 $globalVisibleBullets = 0
                 
                 foreach ($segment in $segments) {
-                    if ($segment.Type -eq 'Code' -or $segment.Type -eq 'Image') {
-                        # Code blocks and images pass through unchanged
+                    if ($segment.Type -eq 'Code' -or $segment.Type -eq 'Image' -or $segment.Type -eq 'Table') {
+                        # Code blocks, images, and tables pass through unchanged
                         $filteredSegments.Add($segment)
                     } else {
                         # Filter bullets in text segments
@@ -392,6 +405,11 @@ Get-Process | Select-Object Name
                             $centeredError = Format-SpectreAligned -Data $errorPanel -HorizontalAlignment Center
                             $renderables.Add($centeredError)
                         }
+                    } elseif ($segment.Type -eq 'Table') {
+                        # Render markdown table via Format-SpectreTable
+                        Write-Verbose '  Table detected'
+                        $tableRenderable = New-TableRenderable -RawTable $segment.RawTable -Centered
+                        $renderables.Add($tableRenderable)
                     } else {
                         # Render text content with centering
                         $lines = $segment.Content -split "`r?`n"
