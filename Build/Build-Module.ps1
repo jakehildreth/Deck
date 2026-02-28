@@ -39,7 +39,7 @@ Build-Module -ModuleName 'Deck' {
     New-ConfigurationManifest @Manifest
 
     # Add standard module dependencies (directly, but can be used with loop as well)
-    New-ConfigurationModule -Type RequiredModule -Name 'PwshSpectreConsole', 'Microsoft.PowerShell.PSResourceGet' -Guid 'Auto' -Version 'Latest'
+    New-ConfigurationModule -Type RequiredModule -Name 'TextMate', 'Microsoft.PowerShell.PSResourceGet' -Guid 'Auto' -Version 'Latest'
 
     # Add external module dependencies, using loop for simplicity
     foreach ($Module in @('Microsoft.PowerShell.Utility', 'Microsoft.PowerShell.Archive', 'Microsoft.PowerShell.Management', 'Microsoft.PowerShell.Security')) {
@@ -52,7 +52,7 @@ Build-Module -ModuleName 'Deck' {
     #New-ConfigurationModule -Type ApprovedModule -Name 'PSSharedGoods', 'PSWriteColor', 'Connectimo', 'PSUnifi', 'PSWebToolbox', 'PSMyPassword'
 
     #New-ConfigurationModuleSkip -IgnoreFunctionName 'Invoke-Formatter', 'Find-Module' -IgnoreModuleName 'platyPS'
-    New-ConfigurationModuleSkip -IgnoreFunctionName 'Clear-Host', 'Get-TrueColorBg', 'Get-TrueColorFg' -IgnoreModuleName 'platyPS'
+    New-ConfigurationModuleSkip -IgnoreFunctionName 'Clear-Host', 'Get-TrueColorBg', 'Get-TrueColorFg', 'Format-TextMate', 'Test-TextMate' -IgnoreModuleName 'platyPS'
 
     $ConfigurationFormat = [ordered] @{
         RemoveComments                              = $false

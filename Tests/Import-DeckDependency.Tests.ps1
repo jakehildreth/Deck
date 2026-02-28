@@ -4,8 +4,8 @@ BeforeAll {
 }
 
 Describe 'Import-DeckDependency' {
-    Context 'When PwshSpectreConsole is available' {
-        It 'Should import PwshSpectreConsole successfully' {
+    Context 'When TextMate is available' {
+        It 'Should import TextMate successfully' {
             { Import-DeckDependency } | Should -Not -Throw
         }
     }

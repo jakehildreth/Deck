@@ -337,25 +337,17 @@ Get-Process | Select-Object Name
                 # Render each segment (already parsed and filtered above)
                 foreach ($segment in $filteredSegments) {
                     if ($segment.Type -eq 'Code') {
-                        # Render code block in a panel with dark background
+                        # Render code block in a panel with syntax highlighting
                         Write-Verbose "  Code block: $($segment.Language)"
                         
-                        # Create markup text for the code
-                        $codeMarkup = [Spectre.Console.Markup]::Escape($segment.Content)
-                        $codeText = [Spectre.Console.Markup]::new("$codeMarkup")
-                        
-                        # Put code in a panel
-                        $codePanel = [Spectre.Console.Panel]::new($codeText)
-                        $codePanel.Border = [Spectre.Console.BoxBorder]::Rounded
-                        $codePanel.Padding = [Spectre.Console.Padding]::new(2, 1, 2, 1)
-                        
-                        # Add language label if specified
-                        if ($segment.Language) {
-                            $codePanel.Header = [Spectre.Console.PanelHeader]::new($segment.Language)
+                        $codeBlockParams = @{
+                            Content  = $segment.Content
+                            Centered = $true
                         }
-                        
-                        # Center code blocks in single-column content slides
-                        $centeredCodePanel = Format-SpectreAligned -Data $codePanel -HorizontalAlignment Center
+                        if ($segment.Language) {
+                            $codeBlockParams['Language'] = $segment.Language
+                        }
+                        $centeredCodePanel = New-CodeBlockPanel @codeBlockParams
                         
                         $renderables.Add($centeredCodePanel)
                     } elseif ($segment.Type -eq 'Image') {

@@ -1,10 +1,11 @@
 function Import-DeckDependency {
     <#
     .SYNOPSIS
-        Imports PwshSpectreConsole module with automatic installation fallback.
+        Imports TextMate module (and its PwshSpectreConsole dependency) with automatic installation fallback.
 
     .DESCRIPTION
-        Attempts to import the PwshSpectreConsole module required for terminal rendering.
+        Attempts to import the TextMate module required for syntax-highlighted code block rendering.
+        TextMate transitively loads PwshSpectreConsole, so all Spectre types and cmdlets remain available.
         Implements a three-tier loading strategy:
         
         1. Try Import-Module (module already installed)
@@ -12,7 +13,7 @@ function Import-DeckDependency {
         3. Show-SadFace + Terminate (installation failed, show help)
         
         This function ensures Deck presentations work out of the box by automatically
-        handling the PwshSpectreConsole dependency without user intervention in most cases.
+        handling the TextMate dependency without user intervention in most cases.
         
         On failure, displays friendly ASCII art and manual installation instructions before
         terminating the script with a proper error record.
@@ -27,8 +28,8 @@ function Import-DeckDependency {
 
     .EXAMPLE
         Import-DeckDependency -Verbose
-        # VERBOSE: Checking for PwshSpectreConsole module
-        # VERBOSE: PwshSpectreConsole loaded successfully
+        # VERBOSE: Checking for TextMate module
+        # VERBOSE: TextMate loaded successfully
 
         Verbose output shows loading progress.
 
@@ -37,9 +38,9 @@ function Import-DeckDependency {
 
     .NOTES
         Dependency Requirements:
-        - Module: PwshSpectreConsole
+        - Module: TextMate (which transitively loads PwshSpectreConsole)
         - Repository: PSGallery (default PowerShell repository)
-        - Required for: All terminal rendering in Deck
+        - Required for: Syntax-highlighted code block rendering + all terminal rendering in Deck
         
         Installation Methods:
         - Primary: Install-PSResource (PSResourceGet module, PowerShell 7.4+)
@@ -54,7 +55,7 @@ function Import-DeckDependency {
         Error Record Details:
         - ErrorId: 'DependencyLoadFailure'
         - Category: NotInstalled
-        - TargetObject: 'PwshSpectreConsole'
+        - TargetObject: 'TextMate'
         - Exception: Generic exception with message
         
         User Experience:
@@ -63,14 +64,14 @@ function Import-DeckDependency {
         - Failure: Friendly ASCII art + manual installation instructions
         
         Verbose Messages:
-        - "Checking for PwshSpectreConsole module"
-        - "PwshSpectreConsole loaded successfully"
-        - "PwshSpectreConsole module not found. Attempting to install..."
-        - "PwshSpectreConsole installed and loaded successfully"
+        - "Checking for TextMate module"
+        - "TextMate loaded successfully"
+        - "TextMate module not found. Attempting to install..."
+        - "TextMate installed and loaded successfully"
         - "Dependency check complete"
         
         Warning Messages:
-        - "PwshSpectreConsole module not found. Attempting to install..."
+        - "TextMate module not found. Attempting to install..."
         
         Related Functions:
         - Show-SadFace: Called on installation failure
@@ -79,37 +80,37 @@ function Import-DeckDependency {
     param()
 
     begin {
-        Write-Verbose 'Checking for PwshSpectreConsole module'
+        Write-Verbose 'Checking for TextMate module'
     }
 
     process {
         # Check if module is already loaded in the current session
-        $loadedModule = Get-Module -Name PwshSpectreConsole
+        $loadedModule = Get-Module -Name TextMate
         
         if ($loadedModule) {
-            Write-Verbose 'PwshSpectreConsole is already loaded in the session'
+            Write-Verbose 'TextMate is already loaded in the session'
             return
         }
         
         # Check if module is installed
-        $module = Get-Module -ListAvailable -Name PwshSpectreConsole | Select-Object -First 1
+        $module = Get-Module -ListAvailable -Name TextMate | Select-Object -First 1
         
         if (-not $module) {
-            Write-Warning 'PwshSpectreConsole module not found. Attempting to install...'
+            Write-Warning 'TextMate module not found. Attempting to install...'
             
             try {
                 # Try to install using Install-PSResource (PSResourceGet)
-                Install-PSResource -Name PwshSpectreConsole -Repository PSGallery -TrustRepository -ErrorAction Stop
-                Write-Verbose 'PwshSpectreConsole installed successfully'
+                Install-PSResource -Name TextMate -Repository PSGallery -TrustRepository -ErrorAction Stop
+                Write-Verbose 'TextMate installed successfully'
             } catch {
                 # Installation failed - show sad face and exit
                 Show-SadFace
                 
                 $errorRecord = [System.Management.Automation.ErrorRecord]::new(
-                    [System.Exception]::new('Failed to install PwshSpectreConsole module'),
+                    [System.Exception]::new('Failed to install TextMate module'),
                     'DependencyInstallFailure',
                     [System.Management.Automation.ErrorCategory]::NotInstalled,
-                    'PwshSpectreConsole'
+                    'TextMate'
                 )
                 $PSCmdlet.ThrowTerminatingError($errorRecord)
             }
@@ -117,17 +118,17 @@ function Import-DeckDependency {
         
         # Now import the module (it was installed but not loaded)
         try {
-            Import-Module PwshSpectreConsole -ErrorAction Stop
-            Write-Verbose 'PwshSpectreConsole loaded successfully'
+            Import-Module TextMate -ErrorAction Stop
+            Write-Verbose 'TextMate loaded successfully'
         } catch {
             # Import failed even though module exists
             Show-SadFace
             
             $errorRecord = [System.Management.Automation.ErrorRecord]::new(
-                [System.Exception]::new('Failed to import PwshSpectreConsole module. The module is installed but cannot be loaded.'),
+                [System.Exception]::new('Failed to import TextMate module. The module is installed but cannot be loaded.'),
                 'DependencyImportFailure',
                 [System.Management.Automation.ErrorCategory]::InvalidOperation,
-                'PwshSpectreConsole'
+                'TextMate'
             )
             $PSCmdlet.ThrowTerminatingError($errorRecord)
         }

@@ -283,5 +283,5 @@ GitHub: github.com/jakehildreth/Deck
 
             Built with:
             PowerShell
-         PwshSpectreConsole
+             TextMate
                 <magenta1><3</magenta1>

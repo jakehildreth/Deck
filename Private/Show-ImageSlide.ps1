@@ -279,17 +279,14 @@ Key benefits of our solution.
                 
                 foreach ($segment in $segments) {
                     if ($segment.Type -eq 'Code') {
-                        # Render code block in a panel
-                        $codeMarkup = [Spectre.Console.Markup]::Escape($segment.Content)
-                        $codeText = [Spectre.Console.Markup]::new($codeMarkup)
-                        
-                        $codePanel = [Spectre.Console.Panel]::new($codeText)
-                        $codePanel.Border = [Spectre.Console.BoxBorder]::Rounded
-                        $codePanel.Padding = [Spectre.Console.Padding]::new(2, 1, 2, 1)
-                        
-                        if ($segment.Language) {
-                            $codePanel.Header = [Spectre.Console.PanelHeader]::new($segment.Language)
+                        # Render code block in a panel with syntax highlighting
+                        $codeBlockParams = @{
+                            Content = $segment.Content
                         }
+                        if ($segment.Language) {
+                            $codeBlockParams['Language'] = $segment.Language
+                        }
+                        $codePanel = New-CodeBlockPanel @codeBlockParams
                         
                         $leftRenderables.Add($codePanel)
                     } else {

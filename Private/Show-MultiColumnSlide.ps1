@@ -239,26 +239,20 @@ Get-Process | Where-Object CPU -gt 100
                 if ($columnContent) {
                     # Parse code blocks in this column
                     $columnSegments = ConvertTo-CodeBlockSegments -Content $columnContent
-                        
-                    # Parse code blocks in this column
-                    $columnSegments = ConvertTo-CodeBlockSegments -Content $columnContent
                     
                     # Build renderables for this column
                     $columnParts = [System.Collections.Generic.List[object]]::new()
                     
                     foreach ($segment in $columnSegments) {
                         if ($segment.Type -eq 'Code') {
-                            # Render code block in a panel
-                            $codeMarkup = [Spectre.Console.Markup]::Escape($segment.Content)
-                            $codeText = [Spectre.Console.Markup]::new($codeMarkup)
-                            
-                            $codePanel = [Spectre.Console.Panel]::new($codeText)
-                            $codePanel.Border = [Spectre.Console.BoxBorder]::Rounded
-                            $codePanel.Padding = [Spectre.Console.Padding]::new(2, 1, 2, 1)
-                            
-                            if ($segment.Language) {
-                                $codePanel.Header = [Spectre.Console.PanelHeader]::new($segment.Language)
+                            # Render code block in a panel with syntax highlighting
+                            $codeBlockParams = @{
+                                Content = $segment.Content
                             }
+                            if ($segment.Language) {
+                                $codeBlockParams['Language'] = $segment.Language
+                            }
+                            $codePanel = New-CodeBlockPanel @codeBlockParams
                             
                             $columnParts.Add($codePanel)
                         } else {
