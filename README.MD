@@ -226,7 +226,7 @@ Additional examples in `Examples/Features/`:
 ## Requirements
 
 - PowerShell 7.4 or later
-- [PwshSpectreConsole](https://github.com/ShaunLawrie/PwshSpectreConsole) (auto-installed if missing)
+- [TextMate](https://github.com/trackd/TextMate) (auto-installed if missing)
 
 ## License
 
