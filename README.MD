@@ -55,7 +55,7 @@ Show-Deck -Path ./presentation.md
 Or load directly from a web URL:
 
 ```powershell
-Show-Deck -Path https://raw.githubusercontent.com/jakehildreth/Deck/main/Examples/ExampleDeck.md
+Show-Deck -Path https://exampledeck.jakehildreth.com
 ```
 
 Validate content before presenting:
