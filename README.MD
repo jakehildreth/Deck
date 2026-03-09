@@ -6,7 +6,7 @@ Terminal-based presentations from Markdown files using PowerShell.
 ![PowerShell 7.4+](https://img.shields.io/badge/PowerShell-7.4%2B-blue)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20arm64%20%7C%20Linux-lightgrey)
 [![PSGallery](https://img.shields.io/powershellgallery/v/Deck)](https://www.powershellgallery.com/packages/Deck)
-![License](https://img.shields.io/badge/license-MIT-green)
+![License](https://img.shields.io/badge/license-MIT%20w%2FCommons%20Clause-green)
 
 ## Quick Start
 
@@ -234,7 +234,7 @@ Additional examples in `Examples/Features/`:
 
 ## License
 
-MIT
+MIT License w/Commons Clause - see [LICENSE](LICENSE) file for details.
 
 ## Built With
 
