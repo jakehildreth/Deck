@@ -1,9 +1,14 @@
-﻿![Deck Logo](Deck.png)
+﻿![The Deck logo displays the word "Deck" in a chunky pixel/bitmap font with a tan and beige color on a black background, evoking a retro video game version of a deck.](Deck.png)
 # Deck
 
 Terminal-based presentations from Markdown files using PowerShell.
 
-## Installation
+![PowerShell 7.4+](https://img.shields.io/badge/PowerShell-7.4%2B-blue)
+![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20arm64%20%7C%20Linux-lightgrey)
+[![PSGallery](https://img.shields.io/powershellgallery/v/Deck)](https://www.powershellgallery.com/packages/Deck)
+![License](https://img.shields.io/badge/license-MIT-green)
+
+## Quick Start
 
 ```powershell
 Install-Module Deck -Scope CurrentUser
@@ -15,8 +20,6 @@ Or clone from GitHub:
 git clone https://github.com/jakehildreth/Deck.git
 Import-Module ./Deck/Deck.psd1
 ```
-
-## Quick Start
 
 Create a Markdown file:
 
@@ -227,6 +230,7 @@ Additional examples in `Examples/Features/`:
 
 - PowerShell 7.4 or later
 - [TextMate](https://github.com/trackd/TextMate) (auto-installed if missing)
+- macOS arm64 only — x64 (Intel) macOS is not supported
 
 ## License
 
