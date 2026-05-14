@@ -79,7 +79,7 @@ function Show-Deck {
     #>
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory = $true, Position = 0)]
+        [Parameter(Mandatory = $true, Position = 0,HelpMessage="Local path or web URL to the Markdown file for the presentation")]
         [ValidateScript({ 
             if ($_ -match '^https?://') {
                 # Web URL - just validate format
@@ -92,11 +92,15 @@ function Show-Deck {
         [string]$Path,
 
         [Parameter()]
-        [switch]$Strict
+        [switch]$Strict,
+
+        [Parameter(HelpMessage="Specify a slide number to jump to that slide on startup")]
+        [ValidateScript({ $_ -ge 0 })]
+        [int]$StartSlide = 1
     )
 
     begin {
-        Write-Verbose "Starting presentation from: $Path"
+        Write-Verbose "Starting presentation from: $Path at slide $StartSlide with strict mode: $Strict"
         
         Import-DeckDependency
     }
@@ -323,12 +327,12 @@ function Show-Deck {
 
             Write-Host "`e[?25l" -NoNewline
 
-            $currentSlide = 0
-                $totalSlides = $presentation.Slides.Count
-                $shouldExit = $false
-                $visibleBullets = @{}
-                $windowWidth = $Host.UI.RawUI.WindowSize.Width
-                $windowHeight = $Host.UI.RawUI.WindowSize.Height - 1
+            $currentSlide   = if ($StartSlide -gt 0 -and $StartSlide -le $presentation.Slides.Count) { $StartSlide - 1 } else { 0 }
+            $totalSlides    = $presentation.Slides.Count
+            $shouldExit     = $false
+            $visibleBullets = @{}
+            $windowWidth    = $Host.UI.RawUI.WindowSize.Width
+            $windowHeight   = $Host.UI.RawUI.WindowSize.Height - 1
 
                 while ($true) {
                     # Clear screen by moving to top-left and drawing blank lines
