@@ -1,6 +1,8 @@
 ﻿param (
-    # A CalVer string if you need to manually override the default yyyy.M.dHmm version string.
+    # A CalVer string if you need to manually override the default yyyy.M.dHHmm version string.
     [string]$CalVer,
+    # A prerelease tag to append to the module version (e.g., 'alpha', 'beta', 'rc1').
+    [string]$Prerelease,
     [switch]$PublishToPSGallery,
     [string]$PSGalleryAPIPath,
     [string]$PSGalleryAPIKey
@@ -17,6 +19,7 @@ if ($Host.Name -eq 'Visual Studio Code Host' -or
     Write-Host 'Re-invoking in a clean pwsh process to avoid PSScriptAnalyzer assembly conflict...'
     $passThrough = @('-NoProfile', '-File', $PSCommandPath)
     if ($CalVer) { $passThrough += '-CalVer'; $passThrough += $CalVer }
+    if ($Prerelease) { $passThrough += '-Prerelease'; $passThrough += $Prerelease }
     if ($PublishToPSGallery) { $passThrough += '-PublishToPSGallery' }
     if ($PSGalleryAPIPath) { $passThrough += '-PSGalleryAPIPath'; $passThrough += $PSGalleryAPIPath }
     if ($PSGalleryAPIKey) { $passThrough += '-PSGalleryAPIKey'; $passThrough += $PSGalleryAPIKey }
@@ -54,6 +57,9 @@ Build-Module -ModuleName 'Deck' {
         Description            = 'Deck makes terminal presentations easy!'
         PowerShellVersion      = '7.4'
         Tags                   = @('Windows', 'MacOS', 'Linux')
+    }
+    if ($Prerelease) {
+        $Manifest['Prerelease'] = $Prerelease
     }
     New-ConfigurationManifest @Manifest
 
@@ -114,6 +120,9 @@ Build-Module -ModuleName 'Deck' {
     New-ConfigurationImportModule -ImportSelf -ImportRequiredModules
 
     New-ConfigurationBuild -Enable:$true -SignModule:$false -DeleteTargetModuleBeforeBuild -MergeModuleOnBuild -MergeFunctionsFromApprovedModules -DoNotAttemptToFixRelativePaths
+
+    New-ConfigurationArtefact -Type Unpacked -Enable -Path "$PSScriptRoot\..\Artefacts\Unpacked"
+    New-ConfigurationArtefact -Type Packed -Enable -Path "$PSScriptRoot\..\Artefacts\Packed" -IncludeTagName
 
     # global options for publishing to github/psgallery
     if($PublishToPSGallery) {
