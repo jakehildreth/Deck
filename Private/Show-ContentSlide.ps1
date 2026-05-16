@@ -335,7 +335,7 @@ Get-Process | Select-Object Name
                 $fontPath = if (Test-Path $fontName) {
                     $fontName
                 } else {
-                    Join-Path $PSScriptRoot "../Fonts/$fontName.flf"
+                    Join-Path ($PSScriptRoot -replace '[/\\]Private$') "Fonts/$fontName.flf"
                 }
                 if (Test-Path $fontPath) {
                     $figletParams['FontPath'] = $fontPath

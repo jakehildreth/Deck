@@ -8,7 +8,7 @@
     Description='Deck makes terminal presentations easy!'
     FunctionsToExport='Show-Deck'
     GUID='409fc543-77b9-48d6-87cc-8bee16c2a20d'
-    ModuleVersion='2026.5.160903'
+    ModuleVersion='2026.5.160937'
     PowerShellVersion='7.4'
     PrivateData=@{
         PSData=@{
