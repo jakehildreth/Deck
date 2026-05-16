@@ -110,9 +110,11 @@ Build-Module -ModuleName 'Deck' {
 
         UseCorrectCasingEnable                      = $true
     }
-    # Disabled all formatting due to PSScriptAnalyzer issues with custom attributes and line endings
-    # Use 'Minimal' style for PSD1 generation (without formatting)
-    New-ConfigurationFormat -ApplyTo 'DefaultPSD1' -PSD1Style 'Minimal'
+    # DefaultPSD1 is intentionally excluded: PSPublishModule rewrites the source PSD1 during the
+    # build and produces mixed CRLF/LF endings, which causes PSScriptAnalyzer to throw.
+    # Use 'Minimal' style only on the merged output PSD1 to avoid populating FileList with
+    # source-directory files (LICENSE, README, fonts) that are not present in the build output.
+    New-ConfigurationFormat -ApplyTo 'OnMergePSD1' -PSD1Style 'Minimal'
 
     # configuration for documentation, at the same time it enables documentation processing
     New-ConfigurationDocumentation -Enable:$false -StartClean -UpdateWhenNew -PathReadme 'Docs\Readme.md' -Path 'Docs'
