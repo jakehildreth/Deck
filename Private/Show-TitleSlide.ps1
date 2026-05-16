@@ -168,7 +168,7 @@ function Show-TitleSlide {
                 $fontPath = if (Test-Path $Settings.h1) {
                     $Settings.h1
                 } else {
-                    Join-Path $PSScriptRoot "../Fonts/$($Settings.h1).flf"
+                    Join-Path ($PSScriptRoot -replace '[/\\]Private$') "Fonts/$($Settings.h1).flf"
                 }
                 Write-Verbose "  h1 font setting: $($Settings.h1)"
                 Write-Verbose "  Constructed font path: $fontPath"
