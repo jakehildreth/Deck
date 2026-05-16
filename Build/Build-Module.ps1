@@ -126,16 +126,26 @@ Build-Module -ModuleName 'Deck' {
     New-ConfigurationArtefact -Type Unpacked -Enable -Path "$PSScriptRoot\..\Artefacts\Unpacked"
     New-ConfigurationArtefact -Type Packed -Enable -Path "$PSScriptRoot\..\Artefacts\Packed" -IncludeTagName
 
-    # global options for publishing to github/psgallery
-    if($PublishToPSGallery) {
-        if ($PSGalleryAPIKey) {
-            # Use API key directly (from environment variable in CI)
-            New-ConfigurationPublish -Type PowerShellGallery -ApiKey $PSGalleryAPIKey -Enabled:$true
-        } elseif ($PSGalleryAPIPath) {
-            # Use API key from file (for local development)
-            New-ConfigurationPublish -Type PowerShellGallery -FilePath $PSGalleryAPIPath -Enabled:$true
-        } else {
-            Write-Error "PublishToPSGallery specified but neither PSGalleryAPIKey nor PSGalleryAPIPath provided."
-        }
+    # NOTE: Publishing is intentionally NOT configured inside Build-Module {}.
+    # PSPublishModule publishes from its internal temp directory which does not
+    # include the Fonts/ directory. We copy fonts into the artefact and publish
+    # from there instead, so the PSGallery package includes the .flf files.
+}
+
+# ── Post-build: copy fonts into artefact and optionally publish ───────────────
+$artefactPath = "$PSScriptRoot\..\Artefacts\Unpacked\Deck"
+
+Write-Host "Copying Fonts/ into build artefact..." -ForegroundColor Cyan
+Copy-Item -Path "$PSScriptRoot\..\Fonts" -Destination $artefactPath -Recurse -Force
+Write-Host "Fonts copied." -ForegroundColor Green
+
+if ($PublishToPSGallery) {
+    if ($PSGalleryAPIKey) {
+        Publish-Module -Path $artefactPath -NuGetApiKey $PSGalleryAPIKey -Repository PSGallery
+    } elseif ($PSGalleryAPIPath) {
+        $key = (Get-Content $PSGalleryAPIPath -Raw).Trim()
+        Publish-Module -Path $artefactPath -NuGetApiKey $key -Repository PSGallery
+    } else {
+        Write-Error "PublishToPSGallery specified but neither PSGalleryAPIKey nor PSGalleryAPIPath provided."
     }
 }
