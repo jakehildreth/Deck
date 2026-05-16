@@ -1,9 +1,28 @@
 ﻿param (
-    # A CalVer string if you need to manually override the default yyyy.M.d version string.
+    # A CalVer string if you need to manually override the default yyyy.M.dHmm version string.
     [string]$CalVer,
     [switch]$PublishToPSGallery,
-    [string]$PSGalleryAPIPath
+    [string]$PSGalleryAPIPath,
+    [string]$PSGalleryAPIKey
 )
+
+# The VS Code PowerShell Extension pre-loads PSScriptAnalyzer into the host
+# process. PSPublishModule imports PSScriptAnalyzer internally, and loading a
+# second copy of its assembly into the same appdomain throws an assembly-already-
+# loaded error. Re-invoke in a clean pwsh -NoProfile child process to avoid it.
+if ($Host.Name -eq 'Visual Studio Code Host' -or
+    $null -ne [System.AppDomain]::CurrentDomain.GetAssemblies().Where({
+            $_.GetName().Name -eq 'Microsoft.Windows.PowerShell.ScriptAnalyzer'
+        }, 'First')[0]) {
+    Write-Host 'Re-invoking in a clean pwsh process to avoid PSScriptAnalyzer assembly conflict...'
+    $passThrough = @('-NoProfile', '-File', $PSCommandPath)
+    if ($CalVer) { $passThrough += '-CalVer'; $passThrough += $CalVer }
+    if ($PublishToPSGallery) { $passThrough += '-PublishToPSGallery' }
+    if ($PSGalleryAPIPath) { $passThrough += '-PSGalleryAPIPath'; $passThrough += $PSGalleryAPIPath }
+    if ($PSGalleryAPIKey) { $passThrough += '-PSGalleryAPIKey'; $passThrough += $PSGalleryAPIKey }
+    & pwsh @passThrough
+    exit $LASTEXITCODE
+}
 
 if (Get-Module -Name 'PSPublishModule' -ListAvailable) {
     Write-Verbose 'PSPublishModule is installed.'
@@ -12,7 +31,7 @@ if (Get-Module -Name 'PSPublishModule' -ListAvailable) {
     try {
         Install-Module -Name Pester -AllowClobber -Scope CurrentUser -SkipPublisherCheck -Force
         Install-Module -Name PSScriptAnalyzer -AllowClobber -Scope CurrentUser -Force
-        Install-Module -Name PSPublishModule -MaximumVersion 2.0.27 -AllowClobber -Scope CurrentUser -Force
+        Install-Module -Name PSPublishModule -AllowClobber -MaximumVersion 2.0.27 -Scope CurrentUser -Force
     } catch {
         Write-Error "PSPublishModule installation failed. $_"
     }
@@ -26,7 +45,7 @@ $CopyrightYear = if ($Calver) { $CalVer.Split('.')[0] } else { (Get-Date -Format
 Build-Module -ModuleName 'Deck' {
     # Usual defaults as per standard module
     $Manifest = [ordered] @{
-        ModuleVersion        = if ($Calver) { $CalVer } else { (Get-Date -Format yyyy.M.d.Hmm) }
+        ModuleVersion          = if ($Calver) { $CalVer } else { (Get-Date -Format yyyy.M.dHHmm) }
         CompatiblePSEditions   = @('Core')
         GUID                   = '409fc543-77b9-48d6-87cc-8bee16c2a20d'
         Author                 = 'Jake Hildreth'
