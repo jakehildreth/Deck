@@ -2,7 +2,6 @@
 - Add New-TableRenderable private helper to render markdown tables via Format-SpectreTable
 - Add table detection regex to ContentSlide, ImageSlide, and ConvertTo-CodeBlockSegments parsers
 - Add table rendering dispatch to ContentSlide, ImageSlide, and MultiColumnSlide foreach loops
-- Tables support left, center, and right column alignment via markdown separator syntax
 
 ### 2026.2.28
 - Replace PwshSpectreConsole direct dependency with TextMate for syntax-highlighted code blocks

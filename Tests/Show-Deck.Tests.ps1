@@ -46,29 +46,29 @@ Content here
 
 Describe 'Show-Deck' {
     Context 'Parameter Types' {
-        It 'Should accept string for Background parameter' {
-            $paramInfo = (Get-Command Show-Deck).Parameters['Background']
+        It 'Should accept string for Path parameter' {
+            $paramInfo = (Get-Command Show-Deck).Parameters['Path']
             $paramInfo.ParameterType.FullName | Should -Be 'System.String'
         }
 
-        It 'Should accept string for Foreground parameter' {
-            $paramInfo = (Get-Command Show-Deck).Parameters['Foreground']
-            $paramInfo.ParameterType.FullName | Should -Be 'System.String'
+        It 'Should accept switch for Strict parameter' {
+            $paramInfo = (Get-Command Show-Deck).Parameters['Strict']
+            $paramInfo.ParameterType.FullName | Should -Be 'System.Management.Automation.SwitchParameter'
         }
 
-        It 'Should accept string for Border parameter' {
-            $paramInfo = (Get-Command Show-Deck).Parameters['Border']
-            $paramInfo.ParameterType.FullName | Should -Be 'System.String'
+        It 'Should accept int for StartSlide parameter' {
+            $paramInfo = (Get-Command Show-Deck).Parameters['StartSlide']
+            $paramInfo.ParameterType.FullName | Should -Be 'System.Int32'
         }
-        
-        It 'Should have optional color parameters (not mandatory)' {
+
+        It 'Should have only Path as mandatory' {
             $params = (Get-Command Show-Deck).Parameters
-            $params['Background'].Attributes.Mandatory | Should -Contain $false
-            $params['Foreground'].Attributes.Mandatory | Should -Contain $false
-            $params['Border'].Attributes.Mandatory | Should -Contain $false
+            $params['Path'].Attributes.Mandatory | Should -Contain $true
+            $params['Strict'].Attributes.Mandatory | Should -Not -Contain $true
+            $params['StartSlide'].Attributes.Mandatory | Should -Not -Contain $true
         }
     }
-    
+
     Context 'File Validation' {
         It 'Should require Path parameter' {
             $paramInfo = (Get-Command Show-Deck).Parameters['Path']

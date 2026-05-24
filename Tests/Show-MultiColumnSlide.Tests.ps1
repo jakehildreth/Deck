@@ -1,5 +1,18 @@
 BeforeAll {
-    Import-Module "$PSScriptRoot/../Deck.psd1" -Force
+    $modulePath = Split-Path -Parent $PSScriptRoot
+    . (Join-Path $modulePath 'Private/Get-TerminalDimensions.ps1')
+    . (Join-Path $modulePath 'Private/Get-BorderStyleFromSettings.ps1')
+    . (Join-Path $modulePath 'Private/Get-SpectreColorFromSettings.ps1')
+    . (Join-Path $modulePath 'Private/Get-PaginationText.ps1')
+    . (Join-Path $modulePath 'Private/New-FigletText.ps1')
+    . (Join-Path $modulePath 'Private/ConvertTo-SpectreMarkup.ps1')
+    . (Join-Path $modulePath 'Private/ConvertTo-CodeBlockSegments.ps1')
+    . (Join-Path $modulePath 'Private/Show-MultiColumnSlide.ps1')
+
+    Import-Module PwshSpectreConsole -ErrorAction SilentlyContinue
+
+    Mock Out-SpectreHost { }
+    Mock Get-SpectreRenderableSize { [PSCustomObject]@{ Width = 80; Height = 10 } }
 }
 
 Describe 'Show-MultiColumnSlide' {

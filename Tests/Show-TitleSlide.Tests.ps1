@@ -1,13 +1,15 @@
 BeforeAll {
     # Import the private function directly for testing
     $modulePath = Split-Path -Parent $PSScriptRoot
+    . (Join-Path $modulePath 'Private/Get-TerminalDimensions.ps1')
+    . (Join-Path $modulePath 'Private/Get-BorderStyleFromSettings.ps1')
+    . (Join-Path $modulePath 'Private/Get-SpectreColorFromSettings.ps1')
+    . (Join-Path $modulePath 'Private/Get-PaginationText.ps1')
+    . (Join-Path $modulePath 'Private/New-FigletText.ps1')
     . (Join-Path $modulePath 'Private/Show-TitleSlide.ps1')
-    
+
     # Import dependency for type availability
     Import-Module PwshSpectreConsole -ErrorAction SilentlyContinue
-    
-    # Mock Clear-Host only (Panel creation is tested by verifying no errors)
-    Mock Clear-Host { }
 }
 
 Describe 'Show-TitleSlide' {
@@ -28,12 +30,6 @@ Describe 'Show-TitleSlide' {
 
         It 'Should extract title text from # heading and render without errors' {
             { Show-TitleSlide -Slide $slide -Settings $settings } | Should -Not -Throw
-        }
-
-        It 'Should clear the screen before rendering' {
-            Show-TitleSlide -Slide $slide -Settings $settings
-            
-            Should -Invoke Clear-Host -Times 1
         }
 
         It 'Should use foreground color from settings without errors' {

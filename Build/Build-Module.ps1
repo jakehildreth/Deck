@@ -45,6 +45,15 @@ Import-Module -Name PSPublishModule -Force
 
 $CopyrightYear = if ($Calver) { $CalVer.Split('.')[0] } else { (Get-Date -Format yyyy) }
 
+# Pre-build: explicitly remove the target artefact directory so PSPublishModule
+# does not nest output inside a stale folder. The built-in -DeleteTargetModuleBeforeBuild
+# flag uses backslash paths that fail silently on macOS.
+$cleanTarget = Join-Path $PSScriptRoot '..' 'Artefacts' 'Unpacked' 'Deck'
+if (Test-Path $cleanTarget) {
+    Write-Host "Cleaning $cleanTarget..." -ForegroundColor Cyan
+    Remove-Item $cleanTarget -Recurse -Force
+}
+
 Build-Module -ModuleName 'Deck' {
     # Usual defaults as per standard module
     $Manifest = [ordered] @{
@@ -133,10 +142,10 @@ Build-Module -ModuleName 'Deck' {
 }
 
 # ── Post-build: copy fonts into artefact and optionally publish ───────────────
-$artefactPath = "$PSScriptRoot\..\Artefacts\Unpacked\Deck"
+$artefactPath = Join-Path $PSScriptRoot '..' 'Artefacts' 'Unpacked' 'Deck'
 
 Write-Host "Copying Fonts/ into build artefact..." -ForegroundColor Cyan
-Copy-Item -Path "$PSScriptRoot\..\Fonts" -Destination $artefactPath -Recurse -Force
+Copy-Item -Path (Join-Path $PSScriptRoot '..' 'Fonts') -Destination $artefactPath -Recurse -Force
 Write-Host "Fonts copied." -ForegroundColor Green
 
 if ($PublishToPSGallery) {
