@@ -323,4 +323,6 @@ deck.jakehildreth.com
      Built with:
      PowerShell
       TextMate
+ PwshSpectreConsole
+   Spectre.Console
          <magenta1><3</magenta1>
