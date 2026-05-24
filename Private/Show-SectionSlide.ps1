@@ -168,7 +168,7 @@ function Show-SectionSlide {
                 Justification = 'Center'
             }
             # Default to 'small' font if h2 is 'default', otherwise use specified font
-            $fontName = if ($Settings.h2 -eq 'default') { 'small' } else { $Settings.h2 }
+            $fontName = if (-not $Settings.h2 -or $Settings.h2 -eq 'default') { 'small' } else { $Settings.h2 }
             $fontPath = if (Test-Path $fontName) {
                 $fontName
             } else {

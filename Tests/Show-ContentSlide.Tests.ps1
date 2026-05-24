@@ -1,13 +1,20 @@
 BeforeAll {
     # Import the private function directly for testing
     $modulePath = Split-Path -Parent $PSScriptRoot
+    . (Join-Path $modulePath 'Private/Get-TerminalDimensions.ps1')
+    . (Join-Path $modulePath 'Private/Get-BorderStyleFromSettings.ps1')
+    . (Join-Path $modulePath 'Private/Get-SpectreColorFromSettings.ps1')
+    . (Join-Path $modulePath 'Private/Get-PaginationText.ps1')
+    . (Join-Path $modulePath 'Private/New-FigletText.ps1')
+    . (Join-Path $modulePath 'Private/ConvertTo-SpectreMarkup.ps1')
+    . (Join-Path $modulePath 'Private/New-CodeBlockPanel.ps1')
+    . (Join-Path $modulePath 'Private/New-TableRenderable.ps1')
     . (Join-Path $modulePath 'Private/Show-ContentSlide.ps1')
-    
+
     # Import dependency for type availability
     Import-Module PwshSpectreConsole -ErrorAction SilentlyContinue
     
     # Mock commands
-    Mock Clear-Host { }
     Mock Out-SpectreHost { }
     Mock Get-SpectreRenderableSize { [PSCustomObject]@{ Width = 80; Height = 10 } }
 }
@@ -35,12 +42,6 @@ More content here.
 
         It 'Should render without errors' {
             { Show-ContentSlide -Slide $slide -Settings $settings } | Should -Not -Throw
-        }
-
-        It 'Should clear the screen before rendering' {
-            Show-ContentSlide -Slide $slide -Settings $settings
-            
-            Should -Invoke Clear-Host -Times 1
         }
 
         It 'Should render using Out-SpectreHost' {

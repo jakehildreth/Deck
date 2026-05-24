@@ -83,10 +83,10 @@ function New-TableRenderable {
         }
 
         # --- parse header row ---
-        $headerCells = $lines[0].Trim().Trim('|') -split '\|' | ForEach-Object { $_.Trim() }
+        $headerCells = @($lines[0].Trim().Trim('|') -split '\|' | ForEach-Object { $_.Trim() })
 
         # --- parse separator row for alignment ---
-        $separatorCells = $lines[1].Trim().Trim('|') -split '\|' | ForEach-Object { $_.Trim() }
+        $separatorCells = @($lines[1].Trim().Trim('|') -split '\|' | ForEach-Object { $_.Trim() })
 
         # Build -Property array with alignment from separator row
         $properties = for ($i = 0; $i -lt $headerCells.Count; $i++) {

@@ -331,7 +331,7 @@ Get-Process | Select-Object Name
                     Justification = 'Center'
                 }
                 # Default to 'mini' font if h3 is 'default', otherwise use specified font
-                $fontName = if ($Settings.h3 -eq 'default') { 'mini' } else { $Settings.h3 }
+                $fontName = if (-not $Settings.h3 -or $Settings.h3 -eq 'default') { 'mini' } else { $Settings.h3 }
                 $fontPath = if (Test-Path $fontName) {
                     $fontName
                 } else {
