@@ -66,20 +66,27 @@ Show-Deck -Path ./presentation.md -Strict
 
 The `-Strict` parameter validates:
 - Content height doesn't exceed viewport
-- Image files exist
+- Local image files exist (web image URLs are **not** validated)
 - Reports all errors before starting
+
+Start from a specific slide:
+
+```powershell
+Show-Deck -Path ./presentation.md -StartSlide 5
+```
 
 ## Features
 
 ### Slide Types
 
-* Title Slides - Single `#` heading with large figlet text  
-* Section Slides - Single `##` heading with medium figlet text  
-* Content Slides - `###` heading with body content  
-* Image Slides - Two-panel layout with content left (60%), image right (40%)  
-* Multi-Column Slides - Split content with `|||` delimiter  
-* Table Slides - Markdown tables rendered as Spectre.Console tables  
+* Title Slides - Single `#` heading with large figlet text
+* Section Slides - Single `##` heading with medium figlet text
+* Content Slides - `###` heading with body content
+* Image Slides - Two-panel layout with content left (60%), image right (40%)
+* Multi-Column Slides - Split content with `|||` delimiter (delimiter must be on its own line)
 * Syntax Highlighting - Fenced code blocks with language-aware highlighting via TextMate
+
+Tables, code blocks, and images can appear within any content, image, or multi-column slide.
 
 #### Image Slides
 
@@ -123,7 +130,7 @@ Tables work on content slides, image slides, and multi-column slides.
 
 #### Syntax Highlighting
 
-Fenced code blocks with a language identifier get automatic syntax highlighting powered by [TextMate](https://github.com/nicknisi/TextMate):
+Fenced code blocks with a language identifier get automatic syntax highlighting powered by [TextMate](https://github.com/trackd/TextMate):
 
 ````markdown
 ```powershell
@@ -135,8 +142,8 @@ Renders in a rounded panel with language header and full color tokenization. Sup
 
 ### Bullet Points
 
-* Progressive bullets using `*` (reveal one at a time)  
-* Static bullets using `-` (all visible at once)
+* Progressive bullets using `*` — revealed one at a time with each forward keypress; navigating backward un-reveals one at a time
+* Static bullets using `-` — all visible immediately on slide entry
 
 ### Inline Formatting
 
@@ -160,10 +167,12 @@ Supports all [Spectre.Console color names](https://spectreconsole.net/appendix/c
 
 ### Navigation
 
-* Forward: Right, Down, Space, Enter, `n`, Page Down  
-* Backward: Left, Up, Backspace, `p`, Page Up  
-* Exit: Esc, Ctrl+C, `q`  
+* Forward: Right, Down, Space, Enter, `n`, Page Down
+* Backward: Left, Up, Backspace, `p`, Page Up
+* Exit: Esc, Ctrl+C, `q`
 * Help: `?`
+
+The first slide shows a `[press ? for help]` hint in place of pagination. After the last slide an "End of Deck" screen is shown — press any backward key to return to the last slide, or Esc / `q` / Ctrl+C to exit.
 
 ### Customization
 
@@ -185,6 +194,20 @@ h2Color: null              # Color for ## sections (aliases: sectionColor, h2Fon
 h3Color: null              # Color for ### headers (aliases: headerColor, h3FontColor)
 ---
 ```
+
+`paginationStyle` options:
+
+| Value | Example |
+|-------|--------|
+| `minimal` | `5` |
+| `fraction` | `5/10` |
+| `text` | `Slide 5 of 10` |
+| `progress` | `█████░░░░░` |
+| `dots` | `○ ○ ● ○ ○` |
+
+Figlet font names for `h1`, `h2`, and `h3` must match one of the 25 bundled fonts. See [Examples/Features/FontShowcase.md](Examples/Features/FontShowcase.md) for a visual preview.
+
+Bundled fonts: `04B_03__` `04B_03B_` `04B_08__` `04B_09__` `04B_11__` `04B_19__` `04B_20__` `04B_21__` `04B_24__` `04B_25__` `5by5` `blocco` `Bytesized-Regular` `JacquardaBastarda9-Regular` `lisp-system-tools` `Micro5-Regular` `mini` `negative-quinpix` `PressStart2P` `Silkscreen` `Sixtyfour-Regular-VariableFont_BLED,SCAN` `small` `super-mario-brothers-3-all-stars` `Tiny5` `TinyUnicode`
 
 #### Heading Colors
 
@@ -208,6 +231,35 @@ h3Color: green
 
 Both `<colorname>text</colorname>` and `<span style="color:colorname">text</span>` syntax are supported.
 
+#### Per-Slide Overrides
+
+Any slide can override global frontmatter settings with HTML comments in the slide body. Overrides apply only to that slide.
+
+```markdown
+### My Slide
+<!-- paginationStyle: dots -->
+<!-- border: cyan -->
+<!-- h1: PressStart2P -->
+
+Slide content here.
+```
+
+Supported keys: `pagination`, `paginationStyle`, `h1`, `h2`, `h3`, `h1Color`, `h2Color`, `h3Color`, `border`, `borderStyle`.
+
+See [Examples/Features/OverrideTest.md](Examples/Features/OverrideTest.md) for examples.
+
+#### Intentionally Blank Slides
+
+A slide containing only `<!-- intentionally blank -->` renders with no heading, content, or pagination:
+
+```markdown
+---
+
+<!-- intentionally blank -->
+
+---
+```
+
 ## Examples
 
 See [Examples/ExampleDeck.md](Examples/ExampleDeck.md) for a comprehensive demo:
@@ -229,8 +281,8 @@ Additional examples in `Examples/Features/`:
 ## Requirements
 
 - PowerShell 7.4 or later
-- [TextMate](https://github.com/trackd/TextMate) (auto-installed if missing)
-- macOS arm64 only — x64 (Intel) macOS is not supported
+- [TextMate](https://github.com/trackd/TextMate) (auto-installed if missing; transitively loads PwshSpectreConsole)
+- Windows, Linux, or macOS (Apple Silicon only — x64 Intel macOS is not supported)
 
 ## License
 
@@ -240,6 +292,8 @@ MIT License w/Commons Clause - see [LICENSE](LICENSE) file for details.
 
 - PowerShell
 - [TextMate](https://github.com/trackd/TextMate)
+- [PwshSpectreConsole](https://github.com/ShaunLawrie/PwshSpectreConsole)
+- [Spectre.Console](https://spectreconsole.net)
 
 Made with 💜 by [Jake Hildreth](https://jakehildreth.com)
 
