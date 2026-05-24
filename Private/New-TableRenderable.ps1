@@ -5,11 +5,7 @@ function New-TableRenderable {
 
     .DESCRIPTION
         Parses a markdown table (header row, separator row, and data rows) into
-        PSCustomObjects and pipes them to Format-SpectreTable. Column alignment is
-        derived from the separator row using standard markdown alignment syntax:
-        - :--- or --- = left-aligned (default)
-        - :---: = center-aligned
-        - ---: = right-aligned
+        PSCustomObjects and pipes them to Format-SpectreTable.
 
         Uses Rounded border style to match the aesthetic of New-CodeBlockPanel.
 
@@ -32,7 +28,7 @@ function New-TableRenderable {
         '@
         New-TableRenderable -RawTable $md
 
-        Returns a Spectre.Console.Table with two left-aligned columns.
+        Returns a Spectre.Console.Table with two columns.
 
     .EXAMPLE
         $md = @'
@@ -42,7 +38,7 @@ function New-TableRenderable {
         '@
         New-TableRenderable -RawTable $md -Centered
 
-        Returns a centered table with mixed column alignments.
+        Returns a centered table.
 
     .EXAMPLE
         $md = @'
@@ -55,7 +51,7 @@ function New-TableRenderable {
         Returns a single-column, single-row table.
 
     .OUTPUTS
-        Spectre.Console.IRenderable. A Table (or aligned Table) renderable for
+        Spectre.Console.IRenderable. A Table (or centered Table) renderable for
         composition into slide layouts.
 
     .NOTES
@@ -112,7 +108,7 @@ function New-TableRenderable {
         # --- build PSCustomObjects from data rows ---
         $dataLines = $lines | Select-Object -Skip 2
         $dataObjects = foreach ($dataLine in $dataLines) {
-            $cells = $dataLine.Trim().Trim('|') -split '\|' | ForEach-Object { $_.Trim() }
+            $cells = @($dataLine.Trim().Trim('|') -split '\|' | ForEach-Object { $_.Trim() })
             $row = [ordered]@{}
             for ($i = 0; $i -lt $headerCells.Count; $i++) {
                 $columnName = if ($headerCells[$i]) { $headerCells[$i] } else { ' ' }
