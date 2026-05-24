@@ -5,16 +5,26 @@ function Show-Deck {
 
     .DESCRIPTION
         Converts a Markdown file into a live terminal-based presentation with rich
-        formatting, colors, and ASCII art powered by PwshSpectreConsole.
-        
+        formatting, colors, and ASCII art powered by TextMate, PwshSpectreConsole,
+        and Spectre.Console.
+
         Supports multiple slide types including title slides (# heading), section slides
         (## heading), content slides (### heading with body), multi-column layouts (|||
         delimiter), and image slides (text + image side-by-side).
-        
+
+        Presentations are customized with an optional YAML frontmatter block at the top
+        of the Markdown file, setting colors, fonts, border style, and pagination. Any
+        slide can override global settings with HTML comments in the slide body:
+
+            <!-- paginationStyle: dots -->
+            <!-- border: cyan -->
+            <!-- h1: PressStart2P -->
+
         Navigate through slides using arrow keys, space, enter, or vim-style keys.
-        Progressive bullets (*) are revealed one at a time, while regular bullets (-)
+        Progressive bullets (*) are revealed one at a time with each forward keypress
+        and un-revealed one at a time when navigating backward. Static bullets (-)
         appear all at once.
-        
+
         Presentations can be loaded from local files or directly from web URLs for
         instant sharing and viewing.
 
@@ -28,16 +38,19 @@ function Show-Deck {
     .PARAMETER Strict
         Enable strict validation mode. Before starting the presentation, validates:
         - Content height doesn't exceed terminal viewport
-        - All referenced image files exist
+        - All referenced local image files exist
         - Figlet text renders within available space
-        
+
         Reports all validation errors and prevents presentation from starting if
         issues are found. Useful for testing presentations before delivering them.
+
+        Note: web image URLs (http/https) are not validated. Only local file paths
+        are checked for existence.
     .PARAMETER StartSlide
-        Optional slide number to start the presentation from (1-based index).
-        Defaults to 1 (the first slide). If specified, the presentation will jump
-        directly to that slide on startup. If an invalid slide number is provided, 
-        it will default back to the first slide.
+        Slide number to start the presentation from. Valid range is 1 to the total
+        number of slides in the presentation. Defaults to 1 (the first slide).
+
+        Values of 0 or greater than the total slide count silently reset to slide 1.
     .EXAMPLE
         Show-Deck -Path ./presentation.md
 
@@ -59,29 +72,89 @@ function Show-Deck {
 
         Starts the presentation from the specified slide number.
 
+    .EXAMPLE
+        Show-Deck -Path https://raw.githubusercontent.com/jakehildreth/Deck/main/Examples/ExampleDeck.md -StartSlide 5
+
+        Loads a presentation from a web URL and starts from slide 5.
+
+    .EXAMPLE
+        Show-Deck -Path ./presentation.md
+
+        The Markdown file uses YAML frontmatter to customize colors, fonts, and layout:
+
+            ---
+            background: Black
+            foreground: Cyan1
+            border: Blue
+            borderStyle: rounded
+            h1: PressStart2P
+            paginationStyle: dots
+            ---
+
+        All frontmatter keys are optional. See .NOTES for the full settings reference.
+
     .OUTPUTS
         None. Displays an interactive presentation directly in the terminal.
 
     .NOTES
-        Navigation Keys:
-        - Forward: Right Arrow, Down Arrow, Space, Enter, n, Page Down
-        - Backward: Left Arrow, Up Arrow, Backspace, p, Page Up
-        - Exit: Escape, q, Ctrl+C
-        - Help: ?
-        
+        Navigation:
+        - Forward:  Right, Down, Space, Enter, n, Page Down
+        - Backward: Left, Up, Backspace, p, Page Up
+        - Exit:     Escape, q, Ctrl+C
+        - Help:     ?
+
+        On the first slide a "[press ? for help]" hint is shown in place of pagination.
+        After the last slide an "End of Deck" screen is displayed. Press any backward
+        key to return to the last slide; press Escape, q, or Ctrl+C to exit.
+
+        Bullet Behavior:
+        - Progressive (*): each forward keypress reveals one bullet; each backward
+          keypress un-reveals one.
+        - Static (-): all bullets visible immediately on slide entry.
+
+        Intentionally Blank Slides:
+        A slide containing only <!-- intentionally blank --> renders with no content,
+        heading, or pagination.
+
         Requirements:
-        - PwshSpectreConsole module (auto-installed if missing)
         - PowerShell 7.4 or later
-        
+        - TextMate module (auto-installed if missing; transitively loads PwshSpectreConsole)
+
+        Frontmatter Settings (YAML block at top of file, all keys optional):
+
+          background      color name or hex
+          foreground      color name or hex
+          border          color name or hex
+          borderStyle     rounded | square | double | heavy | none
+          pagination      true | false
+          paginationStyle minimal | fraction | text | progress | dots
+          h1              figlet font name (aliases: titleFont, h1Font)
+          h2              figlet font name (aliases: sectionFont, h2Font)
+          h3              figlet font name (aliases: headerFont, h3Font)
+          h1Color         color name or hex (aliases: titleColor, h1FontColor)
+          h2Color         color name or hex (aliases: sectionColor, h2FontColor)
+          h3Color         color name or hex (aliases: headerColor, h3FontColor)
+
+        Per-Slide Overrides:
+        HTML comments in a slide body override global frontmatter for that slide only.
+        Supported keys: pagination, paginationStyle, h1, h2, h3, h1Color, h2Color,
+        h3Color, border, borderStyle.
+
         Slide Types:
-        - Title: Single # heading (large figlet text)
-        - Section: Single ## heading (medium figlet text)
-        - Content: ### heading with body content
-        - Multi-column: Content split with ||| delimiter
-        - Image: Text content with ![alt](path) image reference
+        - Title:        Single # heading (large figlet text)
+        - Section:      Single ## heading (medium figlet text)
+        - Content:      ### heading with body content
+        - Multi-column: Content split with ||| delimiter (delimiter must be on own line)
+        - Image:        Text content with ![alt](path) image reference
 
     .LINK
         https://github.com/jakehildreth/Deck
+
+    .LINK
+        https://github.com/trackd/TextMate
+
+    .LINK
+        https://spectreconsole.net
 
     .LINK
         https://github.com/ShaunLawrie/PwshSpectreConsole
