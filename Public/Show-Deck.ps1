@@ -13,12 +13,14 @@ function Show-Deck {
         delimiter), and image slides (text + image side-by-side).
 
         Presentations are customized with an optional YAML frontmatter block at the top
-        of the Markdown file, setting colors, fonts, border style, and pagination. Any
-        slide can override global settings with HTML comments in the slide body:
+        of the Markdown file, setting colors, fonts, border style, pagination, and
+        auto-advance timing. Any slide can override global settings with HTML comments
+        in the slide body:
 
             <!-- paginationStyle: dots -->
             <!-- border: cyan -->
             <!-- h1: PressStart2P -->
+            <!-- autoAdvance: 500 -->
 
         Navigate through slides using arrow keys, space, enter, or vim-style keys.
         Progressive bullets (*) are revealed one at a time with each forward keypress
