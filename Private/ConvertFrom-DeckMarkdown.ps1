@@ -109,6 +109,7 @@ function ConvertFrom-DeckMarkdown {
             'h1Color'       = $null
             'h2Color'       = $null
             'h3Color'       = $null
+            autoAdvance     = 0
         }
     }
 
@@ -146,6 +147,11 @@ function ConvertFrom-DeckMarkdown {
                             $value = $true
                         } elseif ($value -eq 'false') {
                             $value = $false
+                        }
+
+                        # Cast numeric settings to the correct type
+                        if ($key -eq 'autoAdvance') {
+                            $value = [int]$value
                         }
                         
                         # Normalize font property aliases to canonical names
@@ -315,6 +321,10 @@ function ConvertFrom-DeckMarkdown {
                     $overrides['borderStyle'] = $Matches[1]
                     Write-Verbose "    Override: borderStyle = $($overrides['borderStyle'])"
                 }
+                if ($tempContent -match '<!--\s*autoAdvance:\s*(\d+)\s*-->') {
+                    $overrides['autoAdvance'] = [int]$Matches[1]
+                    Write-Verbose "    Override: autoAdvance = $($overrides['autoAdvance'])"
+                }
                 
                 # Remove HTML comments from display content
                 $contentWithoutComments = $trimmed -replace '<!--\s*pagination:\s*(true|false)\s*-->\r?\n?', ''
@@ -327,6 +337,7 @@ function ConvertFrom-DeckMarkdown {
                 $contentWithoutComments = $contentWithoutComments -replace '<!--\s*(?:headerColor|h3FontColor|h3Color):\s*\w+\s*-->\r?\n?', ''
                 $contentWithoutComments = $contentWithoutComments -replace '<!--\s*border:\s*\w+\s*-->\r?\n?', ''
                 $contentWithoutComments = $contentWithoutComments -replace '<!--\s*borderStyle:\s*\w+\s*-->\r?\n?', ''
+                $contentWithoutComments = $contentWithoutComments -replace '<!--\s*autoAdvance:\s*\d+\s*-->\r?\n?', ''
                 
                 # Trim content after removing comments to eliminate blank lines
                 $contentWithoutComments = $contentWithoutComments.Trim()

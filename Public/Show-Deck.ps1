@@ -487,12 +487,26 @@ function Show-Deck {
                     Show-ContentSlide -Slide $slide -Settings $slideSettings -VisibleBullets $visibleBullets[$currentSlide] -CurrentSlide ($currentSlide + 1) -TotalSlides $totalSlides
                 }
 
-                # Get user input
-                $key = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
-                $action = Get-SlideNavigation -KeyInfo $key
+                # Get user input — poll so auto-advance timer can fire
+                $autoAdvanceMs = [int]$slideSettings.autoAdvance
+                $key = $null
+                $action = 'None'
+                $navTimer = [System.Diagnostics.Stopwatch]::StartNew()
+                while ($true) {
+                    if ($Host.UI.RawUI.KeyAvailable) {
+                        $key = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
+                        $action = Get-SlideNavigation -KeyInfo $key
+                        break
+                    }
+                    if ($autoAdvanceMs -gt 0 -and $navTimer.Elapsed.TotalMilliseconds -ge $autoAdvanceMs) {
+                        $action = 'Next'
+                        break
+                    }
+                    Start-Sleep -Milliseconds 10
+                }
 
                 # Handle help key
-                if ($key.Character -eq '?') {
+                if ($null -ne $key -and $key.Character -eq '?') {
                     Write-Host "$([char]27)[H" -NoNewline
                     
                     # Get terminal dimensions
@@ -647,7 +661,7 @@ function Show-Deck {
                     }
                     'None' {
                         # Unhandled key, ignore
-                        Write-Verbose "Unhandled key: $($key.Key)"
+                        Write-Verbose "Unhandled key: $(if ($null -ne $key) { $key.Key } else { 'timer' })"
                     }
                 }
 

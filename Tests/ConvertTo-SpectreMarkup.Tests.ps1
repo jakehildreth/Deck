@@ -151,5 +151,47 @@ Describe 'ConvertTo-SpectreMarkup' {
             $result | Should -Be '[italic][blue]italic blue text[/][/]'
         }
     }
+
+    Context 'Bullet rendering' {
+        It 'Replaces dash bullet with unicode bullet' {
+            $result = ConvertTo-SpectreMarkup -Text '- item text'
+            $result | Should -Be '• item text'
+        }
+
+        It 'Replaces asterisk bullet with unicode bullet' {
+            $result = ConvertTo-SpectreMarkup -Text '* item text'
+            $result | Should -Be '• item text'
+        }
+
+        It 'Preserves leading indentation on dash bullet' {
+            $result = ConvertTo-SpectreMarkup -Text '  - indented item'
+            $result | Should -Be '  • indented item'
+        }
+
+        It 'Preserves leading indentation on asterisk bullet' {
+            $result = ConvertTo-SpectreMarkup -Text '  * indented item'
+            $result | Should -Be '  • indented item'
+        }
+
+        It 'Does not replace dash mid-line' {
+            $result = ConvertTo-SpectreMarkup -Text 'foo - bar'
+            $result | Should -Be 'foo - bar'
+        }
+
+        It 'Does not replace asterisk mid-line' {
+            $result = ConvertTo-SpectreMarkup -Text 'foo * bar'
+            $result | Should -Be 'foo * bar'
+        }
+
+        It 'Applies inline formatting after bullet replacement' {
+            $result = ConvertTo-SpectreMarkup -Text '- **bold** item'
+            $result | Should -Be '• [bold]bold[/] item'
+        }
+
+        It 'Applies inline code after bullet replacement' {
+            $result = ConvertTo-SpectreMarkup -Text '- use `Get-Process` here'
+            $result | Should -Be '• use [grey on grey15]Get-Process[/] here'
+        }
+    }
 }
 
