@@ -93,6 +93,19 @@ function Show-Deck {
 
         All frontmatter keys are optional. See .NOTES for the full settings reference.
 
+    .EXAMPLE
+        Show-Deck -Path ./kiosk.md
+
+        The Markdown file uses autoAdvance in frontmatter for unattended kiosk display:
+
+            ---
+            autoAdvance: 5000
+            ---
+
+        Each slide (and each progressive bullet) advances automatically after 5000ms.
+        Individual slides can override: <!-- autoAdvance: 500 --> for a faster transition,
+        or <!-- autoAdvance: 0 --> to require manual advance on that slide.
+
     .OUTPUTS
         None. Displays an interactive presentation directly in the terminal.
 
@@ -134,11 +147,18 @@ function Show-Deck {
           h1Color         color name or hex (aliases: titleColor, h1FontColor)
           h2Color         color name or hex (aliases: sectionColor, h2FontColor)
           h3Color         color name or hex (aliases: headerColor, h3FontColor)
+          autoAdvance     milliseconds before auto-advancing to next state (0 = disabled)
+
+        Auto-Advance:
+        Set autoAdvance in frontmatter for a global timer (in milliseconds). Each tick
+        fires a 'Next' action: reveals one progressive bullet, or advances the slide if
+        all bullets are already visible. The timer resets after every state change.
+        Set to 0 (default) to disable. Useful for kiosk displays and fade simulations.
 
         Per-Slide Overrides:
         HTML comments in a slide body override global frontmatter for that slide only.
         Supported keys: pagination, paginationStyle, h1, h2, h3, h1Color, h2Color,
-        h3Color, border, borderStyle.
+        h3Color, border, borderStyle, autoAdvance.
 
         Slide Types:
         - Title:        Single # heading (large figlet text)
