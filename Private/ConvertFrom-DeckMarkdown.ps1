@@ -12,7 +12,7 @@ function ConvertFrom-DeckMarkdown {
         1. Extracts YAML frontmatter (--- delimited) for global settings
         2. Normalizes font and color property aliases to canonical names
         3. Splits content by horizontal rules (---, ***, ___) while preserving code blocks
-        4. Parses per-slide override comments (pagination, paginationStyle)
+        4. Parses per-slide override comments (pagination, paginationStyle, autoAdvance, etc.)
         5. Filters out empty slides and handles intentionally blank slides
         6. Tracks line numbers for error reporting
         
@@ -63,6 +63,7 @@ function ConvertFrom-DeckMarkdown {
         - borderStyle: Border style (rounded, square, double, heavy, none)
         - h1, h2, h3: Font names for title, section, and content headings
         - h1Color, h2Color, h3Color: Colors for each heading level
+        - autoAdvance: Milliseconds before auto-advancing to next state (0 = disabled)
         
         Font Property Aliases (all normalized to h1/h2/h3):
         - titleFont, h1Font → h1
@@ -77,6 +78,11 @@ function ConvertFrom-DeckMarkdown {
         Per-Slide Overrides (HTML comments):
         - <!-- pagination: true/false -->
         - <!-- paginationStyle: minimal/fraction/text/progress/dots -->
+        - <!-- border: colorname -->
+        - <!-- borderStyle: rounded/square/double/heavy/none -->
+        - <!-- h1/h2/h3: fontname -->
+        - <!-- h1Color/h2Color/h3Color: colorname -->
+        - <!-- autoAdvance: milliseconds --> (0 disables global timer for this slide)
         
         Special Slide Handling:
         - Empty slides are automatically skipped
