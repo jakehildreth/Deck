@@ -72,14 +72,16 @@ function ConvertTo-SpectreMarkup {
     .NOTES
         Conversion Order (important to prevent conflicts):
         1. Escape image syntax (![...](...) → ![[...]](...))  
-        2. Extract and protect inline code blocks with placeholders
-        3. Convert HTML color tags to Spectre markup
-        4. Convert bold (**text** and __text__)
-        5. Convert italic (*text* and _text_)
-        6. Convert strikethrough (~~text~~)
-        7. Restore protected code blocks
+        2. Replace leading bullet markers (- and * → •)
+        3. Extract and protect inline code blocks with placeholders
+        4. Convert HTML color tags to Spectre markup
+        5. Convert bold (**text** and __text__)
+        6. Convert italic (*text* and _text_)
+        7. Convert strikethrough (~~text~~)
+        8. Restore protected code blocks
         
         Markdown Patterns Supported:
+        - Bullets: - text or * text → • text (leading whitespace preserved)
         - Bold: **text** or __text__ → [bold]text[/]
         - Italic: *text* or _text_ → [italic]text[/]
         - Code: `text` → [grey on grey15]text[/] (with proper escaping)
@@ -122,6 +124,10 @@ function ConvertTo-SpectreMarkup {
         # Escape markdown image syntax before other conversions to prevent Spectre from parsing it
         # ![alt](url) or ![alt](url){width=N} -> escaped brackets
         $result = $result -replace '!\[([^\]]*)\]\(([^)]+)\)(\{width=\d+\})?', '![[${1}]]($2)$3'
+
+        # Replace leading bullet markers (- and *) with unicode bullet character
+        # Must run before code block protection so marker detection isn't affected
+        $result = $result -replace '^(\s*)[-*]\s+', '$1• '
 
         # Convert code blocks FIRST (backticks) to protect code from other formatting
         # Use placeholders to prevent color tag regex from matching code content
