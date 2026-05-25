@@ -276,4 +276,99 @@ ___
             $result.Slides[1].IsBlank | Should -Be $true
         }
     }
+
+    Context 'When autoAdvance is configured' {
+        BeforeAll {
+            $script:autoAdvanceDir = Join-Path $TestDrive 'AutoAdvanceTests'
+            New-Item -Path $script:autoAdvanceDir -ItemType Directory -Force | Out-Null
+        }
+
+        It 'Should parse autoAdvance as int (ms) from frontmatter' {
+            # Arrange
+            $testFile = Join-Path $script:autoAdvanceDir 'auto-advance-global.md'
+            $content = @'
+---
+autoAdvance: 500
+---
+
+### Slide Title
+
+Content here
+'@
+            Set-Content -Path $testFile -Value $content
+
+            # Act
+            $result = ConvertFrom-DeckMarkdown -Path $testFile -WarningAction SilentlyContinue
+
+            # Assert
+            $result.Settings.autoAdvance | Should -Be 500
+            $result.Settings.autoAdvance | Should -BeOfType [int]
+        }
+
+        It 'Should default autoAdvance to 0 when absent from frontmatter' {
+            # Arrange
+            $testFile = Join-Path $script:autoAdvanceDir 'auto-advance-absent.md'
+            $content = @'
+### Slide Title
+
+Content here
+'@
+            Set-Content -Path $testFile -Value $content
+
+            # Act
+            $result = ConvertFrom-DeckMarkdown -Path $testFile
+
+            # Assert
+            $result.Settings.autoAdvance | Should -Be 0
+        }
+
+        It 'Should parse autoAdvance from per-slide override comment' {
+            # Arrange
+            $testFile = Join-Path $script:autoAdvanceDir 'auto-advance-override.md'
+            $content = @'
+### Slide Title
+
+<!-- autoAdvance: 100 -->
+Content here
+'@
+            Set-Content -Path $testFile -Value $content
+
+            # Act
+            $result = ConvertFrom-DeckMarkdown -Path $testFile -WarningAction SilentlyContinue
+
+            # Assert
+            $result.Slides[0].Overrides.autoAdvance | Should -Be 100
+            $result.Slides[0].Overrides.autoAdvance | Should -BeOfType [int]
+        }
+
+        It 'Should allow per-slide override of 0 to disable global timer' {
+            # Arrange
+            $testFile = Join-Path $script:autoAdvanceDir 'auto-advance-disable.md'
+            $content = @'
+---
+autoAdvance: 500
+---
+
+### Slide One
+
+Normal auto-advance slide
+
+---
+
+### Slide Two
+
+<!-- autoAdvance: 0 -->
+This slide requires manual advance
+'@
+            Set-Content -Path $testFile -Value $content
+
+            # Act
+            $result = ConvertFrom-DeckMarkdown -Path $testFile -WarningAction SilentlyContinue
+
+            # Assert — global setting unchanged
+            $result.Settings.autoAdvance | Should -Be 500
+            # Per-slide override explicitly sets 0 to disable
+            $result.Slides[1].Overrides.autoAdvance | Should -Be 0
+        }
+    }
 }
