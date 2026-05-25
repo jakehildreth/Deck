@@ -192,6 +192,7 @@ h3: default                # Figlet font for ### headers (aliases: headerFont, h
 h1Color: null              # Color for # titles (aliases: titleColor, h1FontColor)
 h2Color: null              # Color for ## sections (aliases: sectionColor, h2FontColor)
 h3Color: null              # Color for ### headers (aliases: headerColor, h3FontColor)
+autoAdvance: 0             # Milliseconds per state tick (0 = disabled)
 ---
 ```
 
@@ -244,9 +245,39 @@ Any slide can override global frontmatter settings with HTML comments in the sli
 Slide content here.
 ```
 
-Supported keys: `pagination`, `paginationStyle`, `h1`, `h2`, `h3`, `h1Color`, `h2Color`, `h3Color`, `border`, `borderStyle`.
+Supported keys: `pagination`, `paginationStyle`, `h1`, `h2`, `h3`, `h1Color`, `h2Color`, `h3Color`, `border`, `borderStyle`, `autoAdvance`.
+
+Set `<!-- autoAdvance: 0 -->` on a slide to disable a global timer for that slide only.
 
 See [Examples/Features/OverrideTest.md](Examples/Features/OverrideTest.md) for examples.
+
+#### Auto-Advance
+
+Set `autoAdvance` in frontmatter to advance the presentation automatically on a timer (milliseconds):
+
+```yaml
+---
+autoAdvance: 3000
+---
+```
+
+Each timer tick fires a `Next` action: reveals the next progressive bullet if any are hidden, otherwise advances to the next slide. The timer resets after every state change. Manual navigation always works regardless of the timer.
+
+Override per slide:
+
+```markdown
+### Fast Slide
+<!-- autoAdvance: 400 -->
+Advances after 400ms — useful for fade simulations.
+
+---
+
+### Pause Here
+<!-- autoAdvance: 0 -->
+Auto-advance disabled. Manual input required.
+```
+
+See [Examples/Features/AutoAdvanceTest.md](Examples/Features/AutoAdvanceTest.md) for a working demo.
 
 #### Intentionally Blank Slides
 
@@ -277,6 +308,7 @@ Additional examples in `Examples/Features/`:
 - [TitleTest.md](Examples/Features/TitleTest.md) - Title and section slides
 - [TableTest.md](Examples/Features/TableTest.md) - Markdown table rendering
 - [SyntaxHighlightTest.md](Examples/Features/SyntaxHighlightTest.md) - Code block syntax highlighting
+- [AutoAdvanceTest.md](Examples/Features/AutoAdvanceTest.md) - Auto-advance timer with per-slide overrides
 
 ## Requirements
 

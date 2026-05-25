@@ -13,12 +13,14 @@ function Show-Deck {
         delimiter), and image slides (text + image side-by-side).
 
         Presentations are customized with an optional YAML frontmatter block at the top
-        of the Markdown file, setting colors, fonts, border style, and pagination. Any
-        slide can override global settings with HTML comments in the slide body:
+        of the Markdown file, setting colors, fonts, border style, pagination, and
+        auto-advance timing. Any slide can override global settings with HTML comments
+        in the slide body:
 
             <!-- paginationStyle: dots -->
             <!-- border: cyan -->
             <!-- h1: PressStart2P -->
+            <!-- autoAdvance: 500 -->
 
         Navigate through slides using arrow keys, space, enter, or vim-style keys.
         Progressive bullets (*) are revealed one at a time with each forward keypress
@@ -93,6 +95,19 @@ function Show-Deck {
 
         All frontmatter keys are optional. See .NOTES for the full settings reference.
 
+    .EXAMPLE
+        Show-Deck -Path ./kiosk.md
+
+        The Markdown file uses autoAdvance in frontmatter for unattended kiosk display:
+
+            ---
+            autoAdvance: 5000
+            ---
+
+        Each slide (and each progressive bullet) advances automatically after 5000ms.
+        Individual slides can override: <!-- autoAdvance: 500 --> for a faster transition,
+        or <!-- autoAdvance: 0 --> to require manual advance on that slide.
+
     .OUTPUTS
         None. Displays an interactive presentation directly in the terminal.
 
@@ -134,11 +149,18 @@ function Show-Deck {
           h1Color         color name or hex (aliases: titleColor, h1FontColor)
           h2Color         color name or hex (aliases: sectionColor, h2FontColor)
           h3Color         color name or hex (aliases: headerColor, h3FontColor)
+          autoAdvance     milliseconds before auto-advancing to next state (0 = disabled)
+
+        Auto-Advance:
+        Set autoAdvance in frontmatter for a global timer (in milliseconds). Each tick
+        fires a 'Next' action: reveals one progressive bullet, or advances the slide if
+        all bullets are already visible. The timer resets after every state change.
+        Set to 0 (default) to disable. Useful for kiosk displays and fade simulations.
 
         Per-Slide Overrides:
         HTML comments in a slide body override global frontmatter for that slide only.
         Supported keys: pagination, paginationStyle, h1, h2, h3, h1Color, h2Color,
-        h3Color, border, borderStyle.
+        h3Color, border, borderStyle, autoAdvance.
 
         Slide Types:
         - Title:        Single # heading (large figlet text)
@@ -487,12 +509,26 @@ function Show-Deck {
                     Show-ContentSlide -Slide $slide -Settings $slideSettings -VisibleBullets $visibleBullets[$currentSlide] -CurrentSlide ($currentSlide + 1) -TotalSlides $totalSlides
                 }
 
-                # Get user input
-                $key = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
-                $action = Get-SlideNavigation -KeyInfo $key
+                # Get user input — poll so auto-advance timer can fire
+                $autoAdvanceMs = [int]$slideSettings.autoAdvance
+                $key = $null
+                $action = 'None'
+                $navTimer = [System.Diagnostics.Stopwatch]::StartNew()
+                while ($true) {
+                    if ($Host.UI.RawUI.KeyAvailable) {
+                        $key = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
+                        $action = Get-SlideNavigation -KeyInfo $key
+                        break
+                    }
+                    if ($autoAdvanceMs -gt 0 -and $navTimer.Elapsed.TotalMilliseconds -ge $autoAdvanceMs) {
+                        $action = 'Next'
+                        break
+                    }
+                    Start-Sleep -Milliseconds 10
+                }
 
                 # Handle help key
-                if ($key.Character -eq '?') {
+                if ($null -ne $key -and $key.Character -eq '?') {
                     Write-Host "$([char]27)[H" -NoNewline
                     
                     # Get terminal dimensions
@@ -647,7 +683,7 @@ function Show-Deck {
                     }
                     'None' {
                         # Unhandled key, ignore
-                        Write-Verbose "Unhandled key: $($key.Key)"
+                        Write-Verbose "Unhandled key: $(if ($null -ne $key) { $key.Key } else { 'timer' })"
                     }
                 }
 
