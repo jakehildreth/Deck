@@ -437,9 +437,14 @@ function Show-Deck {
             $visibleBullets = @{}
             $windowWidth    = $Host.UI.RawUI.WindowSize.Width
             $windowHeight   = $Host.UI.RawUI.WindowSize.Height - 1
+            $useSyncOutput  = Get-TerminalSyncSupport
 
                 while ($true) {
-                    # Clear screen by moving to top-left and drawing blank lines
+                    # On sync-capable terminals wrap the entire clear+render in synchronized
+                    # output mode so the blank pass and new slide are flushed atomically.
+                    # The blank-loop itself is preserved unchanged since it reliably clears
+                    # every cell and prevents leftover artifacts on all terminal emulators.
+                    if ($useSyncOutput) { Write-Host "`e[?2026h" -NoNewline }
                     Write-Host "`e[H" -NoNewline
                     for ($i = 0; $i -lt $windowHeight; $i++) {
                         Write-Host (' ' * $windowWidth)
@@ -509,6 +514,8 @@ function Show-Deck {
                     Show-ContentSlide -Slide $slide -Settings $slideSettings -VisibleBullets $visibleBullets[$currentSlide] -CurrentSlide ($currentSlide + 1) -TotalSlides $totalSlides
                 }
 
+                if ($useSyncOutput) { Write-Host "`e[?2026l" -NoNewline }
+
                 # Get user input — poll so auto-advance timer can fire
                 $autoAdvanceMs = [int]$slideSettings.autoAdvance
                 $key = $null
@@ -564,20 +571,21 @@ function Show-Deck {
                     # Calculate vertical padding for centering
                     $topPadding = [math]::Max(0, [math]::Floor(($windowHeight - $contentHeight) / 2))
                     
-                    # Fill screen with blank lines
+                    if ($useSyncOutput) { Write-Host "`e[?2026h" -NoNewline }
                     for ($i = 0; $i -lt $windowHeight; $i++) {
                         Write-Host (" " * $windowWidth)
                     }
-                    
+
                     # Move cursor back to top and render centered content
                     Write-Host "`e[H" -NoNewline
-                    
+
                     # Add blank lines for vertical centering
                     Write-Host ("`n" * $topPadding) -NoNewline
-                    
+
                     # Output the help content
                     $combinedRenderable | Out-SpectreHost
-                    
+                    if ($useSyncOutput) { Write-Host "`e[?2026l" -NoNewline }
+
                     $null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
                     continue
                 }
@@ -598,23 +606,22 @@ function Show-Deck {
                             Write-Verbose "Advanced to slide $($currentSlide + 1)"
                         } else {
                             # On last slide, trying to go forward shows end screen
-                            Write-Host "`e[H" -NoNewline
-                            
+
                             # Center text vertically and horizontally
                             $windowHeight = $Host.UI.RawUI.WindowSize.Height
                             $windowWidth = $Host.UI.RawUI.WindowSize.Width
-                            
+
                             $line1 = "End of Deck"
                             $line2 = "Press ESC or q to Exit"
-                            
+
                             # Calculate vertical position (center)
                             $verticalPadding = [math]::Floor($windowHeight / 2) - 1
-                            
-                            # Fill screen with blank lines to clear previous content
+
+                            if ($useSyncOutput) { Write-Host "`e[?2026h" -NoNewline }
                             for ($i = 0; $i -lt $windowHeight; $i++) {
                                 Write-Host (" " * $windowWidth)
                             }
-                            
+
                             # Move cursor back to top and render centered text
                             Write-Host "`e[H" -NoNewline
                             
@@ -633,7 +640,8 @@ function Show-Deck {
                             $padding2 = [math]::Max(0, [math]::Floor(($windowWidth - $line2.Length) / 2))
                             Write-Host (" " * $padding2) -NoNewline
                             Write-Host $line2 -ForegroundColor Gray
-                            
+                            if ($useSyncOutput) { Write-Host "`e[?2026l" -NoNewline }
+
                             # Wait for ESC, q, or backward navigation
                             do {
                                 $exitKey = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')

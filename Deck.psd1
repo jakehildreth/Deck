@@ -8,7 +8,7 @@
     Description='Deck makes terminal presentations easy!'
     FunctionsToExport='Show-Deck'
     GUID='409fc543-77b9-48d6-87cc-8bee16c2a20d'
-    ModuleVersion='2026.5.251122'
+    ModuleVersion='2026.6.20714'
     PowerShellVersion='7.4'
     PrivateData=@{
         PSData=@{
@@ -20,7 +20,7 @@
     RequiredModules=@(@{
         Guid='fe78d2cb-2418-4308-9309-a0850e504cd6'
         ModuleName='TextMate'
-        ModuleVersion='0.2.1'
+        ModuleVersion='0.3.0'
     },        @{
         Guid='e4e0bda1-0703-44a5-b70d-8fe704cd0643'
         ModuleName='Microsoft.PowerShell.PSResourceGet'
