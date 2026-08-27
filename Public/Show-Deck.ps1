@@ -238,6 +238,22 @@ function Show-Deck {
             $presentation = ConvertFrom-DeckMarkdown -Path $pathToLoad
             Write-Verbose "Loaded $($presentation.Slides.Count) slides"
 
+            # Fail fast if StartSlide is out of range now that the slide count is known
+            if ($StartSlide -gt $presentation.Slides.Count) {
+                $exception = [System.ArgumentOutOfRangeException]::new(
+                    'StartSlide',
+                    $StartSlide,
+                    "StartSlide $StartSlide is out of range. The presentation has $($presentation.Slides.Count) slide(s). Valid range is 1 to $($presentation.Slides.Count)."
+                )
+                $errorRecord = [System.Management.Automation.ErrorRecord]::new(
+                    $exception,
+                    'StartSlideOutOfRange',
+                    [System.Management.Automation.ErrorCategory]::InvalidArgument,
+                    $Path
+                )
+                $PSCmdlet.ThrowTerminatingError($errorRecord)
+            }
+
             # Pre-validate image slide content heights (only in Strict mode)
             if ($Strict) {
                 $windowWidth = $Host.UI.RawUI.WindowSize.Width

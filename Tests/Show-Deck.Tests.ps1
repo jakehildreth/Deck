@@ -118,4 +118,22 @@ Describe 'Show-Deck' {
             '## Section' | Should -Not -Match $headerPattern
         }
     }
+
+    Context 'StartSlide Validation' {
+        It 'Should throw a terminating error when StartSlide exceeds the slide count' {
+            # multiSlideFile has 3 slides; 4 is out of range
+            { Show-Deck -Path $script:multiSlideFile -StartSlide 4 } | Should -Throw -ErrorId 'StartSlideOutOfRange,Show-Deck'
+        }
+
+        It 'Should name the total slide count in the error message' {
+            $errorMessage = $null
+            try {
+                Show-Deck -Path $script:multiSlideFile -StartSlide 99
+            } catch {
+                $errorMessage = $_.Exception.Message
+            }
+            $errorMessage | Should -Match '3'
+            $errorMessage | Should -Match '99'
+        }
+    }
 }
