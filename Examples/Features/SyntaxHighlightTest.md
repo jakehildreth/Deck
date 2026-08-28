@@ -174,11 +174,17 @@ services:
 
 Use the language identifier after the opening fence:
 
-````markdown
+```markdown
 ```powershell
-# your code here
+if ($Language) {
+    try {
+        $useHighlighting = Test-TextMate -Language $Language
+    } catch {
+        Write-Verbose "Test-TextMate failed for language '$Language': $_"
+        $useHighlighting = $false
+    }
+}
 ```
-````
 
 ---
 
