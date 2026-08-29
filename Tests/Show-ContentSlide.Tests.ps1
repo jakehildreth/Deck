@@ -9,6 +9,7 @@ BeforeAll {
     . (Join-Path $modulePath 'Private/ConvertTo-SpectreMarkup.ps1')
     . (Join-Path $modulePath 'Private/New-CodeBlockPanel.ps1')
     . (Join-Path $modulePath 'Private/New-TableRenderable.ps1')
+    . (Join-Path $modulePath 'Private/ConvertTo-TableCell.ps1')
     . (Join-Path $modulePath 'Private/Show-ContentSlide.ps1')
 
     # Import dependency for type availability
@@ -102,6 +103,97 @@ More content here.
                 IsBlank = $false
             }
             
+            { Show-ContentSlide -Slide $slide -Settings $settings } | Should -Not -Throw
+        }
+    }
+    Context 'When rendering H1 heading with body content' {
+        BeforeAll {
+            $slide = [PSCustomObject]@{
+                Number  = 1
+                Content = @'
+# Deck Title
+
+Some body text under the H1 heading.
+* progressive bullet one
+* progressive bullet two
+'@
+                IsBlank = $false
+            }
+
+            $settings = @{
+                foreground = 'white'
+                h1         = 'small'
+                h1Color    = 'Yellow'
+            }
+        }
+
+        It 'Should render without errors' {
+            { Show-ContentSlide -Slide $slide -Settings $settings } | Should -Not -Throw
+        }
+
+        It 'Should render using Out-SpectreHost' {
+            Show-ContentSlide -Slide $slide -Settings $settings
+
+            Should -Invoke Out-SpectreHost -Times 1
+        }
+
+        It 'Should count progressive bullets in the body' {
+            Show-ContentSlide -Slide $slide -Settings $settings
+
+            $slide.TotalProgressiveBullets | Should -Be 2
+        }
+    }
+
+    Context 'When rendering H2 heading with body content' {
+        BeforeAll {
+            $slide = [PSCustomObject]@{
+                Number  = 2
+                Content = @'
+## Section With Body
+
+Body text under an H2 heading.
+'@
+                IsBlank = $false
+            }
+
+            $settings = @{
+                foreground = 'white'
+                h2         = 'mini'
+                h2Color    = 'Cyan'
+            }
+        }
+
+        It 'Should render without errors' {
+            { Show-ContentSlide -Slide $slide -Settings $settings } | Should -Not -Throw
+        }
+
+        It 'Should render using Out-SpectreHost' {
+            Show-ContentSlide -Slide $slide -Settings $settings
+
+            Should -Invoke Out-SpectreHost -Times 1
+        }
+    }
+
+    Context 'When rendering H1 heading mixed with a table' {
+        BeforeAll {
+            $slide = [PSCustomObject]@{
+                Number  = 1
+                Content = @'
+# Mixed Content
+
+| Name  | Value |
+| ----- | ----- |
+| foo   | 1     |
+'@
+                IsBlank = $false
+            }
+
+            $settings = @{
+                foreground = 'white'
+            }
+        }
+
+        It 'Should render without errors' {
             { Show-ContentSlide -Slide $slide -Settings $settings } | Should -Not -Throw
         }
     }

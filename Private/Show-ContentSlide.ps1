@@ -4,23 +4,18 @@ function Show-ContentSlide {
         Renders a content slide with optional header and body text.
 
     .DESCRIPTION
-        Displays a content slide that may contain a ### heading rendered as figlet
-        text followed by body content. This is the most common slide type for presenting
-        information with structured content.
-        
-        The rendering process:
-        1. Detects optional ### heading and extracts text
-        2. Parses body content for code blocks, images, and text segments
-        3. Filters progressive bullets (*) based on VisibleBullets parameter
-        4. Converts markdown formatting to Spectre Console markup
-        5. Renders content in a bordered panel with proper spacing
-        
-        Progressive bullets (*) are revealed one at a time during navigation, while
-        regular bullets (-) appear all at once. Code blocks and images are preserved
-        during bullet filtering to prevent display issues.
-        
-        Content headers use the configured h3 font setting and support color overrides
-        via HTML color tags in the heading text.
+        Displays a content slide with an optional heading (H1, H2, or H3) rendered
+        as figlet text, followed by body content with full markdown formatting,
+        code blocks, tables, images, and progressive bullet support.
+
+        Heading levels are detected from the markdown source:
+        - # heading uses the h1 font and h1Color settings
+        - ## heading uses the h2 font and h2Color settings
+        - ### heading uses the h3 font and h3Color settings (default: mini font)
+
+        Body content is parsed into segments (text, code blocks, tables, images)
+        and rendered in order. Progressive bullets (*) are filtered based on the
+        VisibleBullets parameter, revealing one at a time during navigation.
 
     .PARAMETER Slide
         The slide object containing the content to render. Must include Content property
@@ -32,8 +27,8 @@ function Show-ContentSlide {
         - background: Slide background color
         - border: Border color
         - borderStyle: Border style (rounded, square, double, heavy, none)
-        - h3: Font name for ### headings (default: 'mini')
-        - h3Color: Optional color override for ### headings
+        - h1, h2, h3: Font names for #, ##, ### headings
+        - h1Color, h2Color, h3Color: Optional color overrides per heading level
 
     .PARAMETER VisibleBullets
         The number of progressive bullets (*) to reveal. Use this to implement step-by-step
@@ -135,11 +130,12 @@ Get-Process | Select-Object Name
             $headerText = $null
             $bodyContent = $null
 
-            if ($Slide.Content -match '^###\s+(.+?)(?:\r?\n|$)') {
+            if ($Slide.Content -match '^(#{1,3})\s+(.+?)(?:\r?\n|$)') {
                 $hasHeader = $true
-                $headerText = $Matches[1].Trim()
-                Write-Verbose "  Header: $headerText"
-                
+                $headingLevel = $Matches[1].Length
+                $headerText = $Matches[2].Trim()
+                Write-Verbose "  Header (H$headingLevel): $headerText"
+
                 # Check for color tags in heading text and extract color
                 $headingColor = $null
                 if ($headerText -match '<(\w+)>.*?</\1>') {
@@ -149,13 +145,13 @@ Get-Process | Select-Object Name
                     $headingColor = $Matches[1]
                     Write-Verbose "  Extracted color from span: $headingColor"
                 }
-                
+
                 # Strip HTML tags from header text
                 $headerText = $headerText -replace "<span\s+style=['""]color:\w+['""]>(.*?)</span>", '$1'
                 $headerText = $headerText -replace '<(\w+)>(.*?)</\1>', '$2'
-                
+
                 # Extract content after header
-                $bodyContent = $Slide.Content -replace '^###\s+.+?(\r?\n|$)', ''
+                $bodyContent = $Slide.Content -replace '^#{1,3}\s+.+?(\r?\n|$)', ''
                 $bodyContent = $bodyContent.Trim()
             } else {
                 # No header, use all content
@@ -310,12 +306,14 @@ Get-Process | Select-Object Name
             
             # Get border and colors
             $borderInfo = Get-BorderStyleFromSettings -Settings $Settings
-            $colorName = if ($hasHeader -and $headingColor) { 
-                $headingColor 
-            } elseif ($Settings.h3Color) { 
-                $Settings.h3Color 
-            } else { 
-                $Settings.foreground 
+            $headingLevelKey = if ($hasHeader) { "h$headingLevel" } else { 'h3' }
+            $colorSettingKey = "${headingLevelKey}Color"
+            $colorName = if ($hasHeader -and $headingColor) {
+                $headingColor
+            } elseif ($Settings[$colorSettingKey]) {
+                $Settings[$colorSettingKey]
+            } else {
+                $Settings.foreground
             }
             $figletColor = Get-SpectreColorFromSettings -ColorName $colorName -SettingName 'Figlet'
 
@@ -330,8 +328,10 @@ Get-Process | Select-Object Name
                     Color = $figletColor
                     Justification = 'Center'
                 }
-                # Default to 'mini' font if h3 is 'default', otherwise use specified font
-                $fontName = if (-not $Settings.h3 -or $Settings.h3 -eq 'default') { 'mini' } else { $Settings.h3 }
+                # Use the font for the detected heading level; fall back to 'mini' for h3
+                $fontSetting = $Settings[$headingLevelKey]
+                $defaultFont = if ($headingLevelKey -eq 'h3') { 'mini' } else { 'default' }
+                $fontName = if (-not $fontSetting -or $fontSetting -eq 'default') { $defaultFont } else { $fontSetting }
                 $fontPath = if (Test-Path $fontName) {
                     $fontName
                 } else {
@@ -339,7 +339,7 @@ Get-Process | Select-Object Name
                 }
                 if (Test-Path $fontPath) {
                     $figletParams['FontPath'] = $fontPath
-                    Write-Verbose "  Using h3 font: $fontName"
+                    Write-Verbose "  Using $headingLevelKey font: $fontName"
                 }
                 $figlet = New-FigletText @figletParams
                 $renderables.Add($figlet)

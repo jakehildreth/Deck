@@ -116,6 +116,9 @@ function Show-SectionSlide {
         [hashtable]$Settings,
 
         [Parameter(Mandatory = $false)]
+        [int]$VisibleBullets = [int]::MaxValue,
+
+        [Parameter(Mandatory = $false)]
         [int]$CurrentSlide = 1,
 
         [Parameter(Mandatory = $false)]
