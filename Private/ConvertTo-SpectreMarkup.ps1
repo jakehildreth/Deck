@@ -14,7 +14,8 @@ function ConvertTo-SpectreMarkup {
         3. Bold formatting (**text** or __text__)
         4. Italic formatting (*text* or _text_)
         5. Strikethrough formatting (~~text~~)
-        6. Inline code styling with grey on grey15 background
+        6. Clickable links ([text](https://url) → OSC 8)
+        7. Inline code styling with grey on grey15 background
         
         Conversion order matters to prevent conflicts between overlapping patterns.
         Code blocks are protected first using placeholders, then restored after all
@@ -108,8 +109,15 @@ function ConvertTo-SpectreMarkup {
         Not Supported:
         - Nested formatting (e.g., ***bold italic***)
         - Per-character coloring
-        - Links [text](url) - displayed as-is
         - Block-level markdown (headers, lists, etc.) - handled by slide renderers
+
+        Links:
+        - [text](https://url) → [link=url]text[/] (OSC 8 clickable where supported)
+
+        Strikethrough:
+        - Emits a once-per-session warning when the terminal is not known to
+          support strikethrough (Test-StrikethroughSupport). Override detection
+          with DECK_STRIKETHROUGH=true|false.
     #>
     [CmdletBinding()]
     param(
@@ -131,18 +139,25 @@ function ConvertTo-SpectreMarkup {
 
         # Convert code blocks FIRST (backticks) to protect code from other formatting
         # Use placeholders to prevent color tag regex from matching code content
-        $codeBlocks = @{}
-        $codeIndex = 0
+        # $script: scope: the [regex]::Replace callback runs in a child scope and
+        # must be able to add entries. See the $codeIndex++ note below.
+        $script:codeBlocks = [ordered]@{}
+        $script:codeIndex = 0
         $result = [regex]::Replace($result, '`([^`]+)`', {
             param($match)
             $codeContent = $match.Groups[1].Value
             # Use Spectre's built-in escaping
             $escapedContent = [Spectre.Console.Markup]::Escape($codeContent)
             $codeMarkup = "[grey on grey15]$escapedContent[/]"
-            # Store in placeholder
-            $placeholder = "___INLINECODE_${codeIndex}___"
+            # Store in placeholder. Char 31 (unit separator) is used instead of
+            # underscores so the bold/italic regexes (__x__ / _x_) cannot match
+            # across the placeholder and corrupt it before restoration.
+            $placeholder = [string][char]31 + "INLINECODE${codeIndex}" + [char]31
             $codeBlocks[$placeholder] = $codeMarkup
-            $codeIndex++
+            # $script: scope is required: the regex callback runs in a child
+            # scope, so a plain $codeIndex++ would never increment here and
+            # every block would collide on placeholder 0.
+            $script:codeIndex++
             return $placeholder
         })
 
@@ -163,7 +178,26 @@ function ConvertTo-SpectreMarkup {
         $result = $result -replace '(?<!_)_(?!_)([^_]+)(?<!_)_(?!_)', '[italic]$1[/]'
 
         # Strikethrough: ~~text~~ -> [strikethrough]text[/]
+        if ($result -match '~~[^~]+~~') {
+            # Test-StrikethroughSupport is dot-sourced by the module loader; guard so
+            # the function still works when this file is dot-sourced alone (tests).
+            $strikeSupported = $true
+            if (Get-Command Test-StrikethroughSupport -ErrorAction SilentlyContinue) {
+                $strikeSupported = Test-StrikethroughSupport
+            }
+            if (-not $strikeSupported -and -not $script:StrikethroughWarned) {
+                Write-Warning 'Strikethrough (~~text~~) is used but the current terminal may not support it. Set DECK_STRIKETHROUGH=true to suppress this warning.'
+                $script:StrikethroughWarned = $true
+            }
+        }
         $result = $result -replace '~~([^~]+)~~', '[strikethrough]$1[/]'
+
+        # Links: [text](url) -> [link=url]text[/]
+        # Spectre renders OSC 8 hyperlinks where supported (Windows Terminal, iTerm2,
+        # Ghostty, WezTerm) and degrades to plain text otherwise. Runs before the
+        # placeholder restore so link text is not confused with formatting markers,
+        # and after the image escape (line above used ![[...]] so images are untouched).
+        $result = $result -replace '\[([^\]]+)\]\((https?://[^)]+)\)', '[link=$2]$1[/]'
 
         # Restore code block placeholders
         foreach ($placeholder in $codeBlocks.Keys) {

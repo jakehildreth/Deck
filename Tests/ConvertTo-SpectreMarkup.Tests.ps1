@@ -1,4 +1,7 @@
 BeforeAll {
+    # Load Spectre.Console assembly (the function uses [Spectre.Console.Markup]::Escape)
+    Import-Module TextMate -ErrorAction Stop
+
     # Dot-source the private function for testing
     . "$PSScriptRoot/../Private/ConvertTo-SpectreMarkup.ps1"
 }
@@ -49,16 +52,16 @@ Describe 'ConvertTo-SpectreMarkup' {
             $result | Should -Be 'Use [grey on grey15]Get-Process[/] or [grey on grey15]Get-Service[/] cmdlets'
         }
 
-        It 'Escapes angle brackets in code' {
+        It 'Leaves angle brackets untouched in code (Spectre markup only treats [ ] as special)' {
             $text = 'Use `<red>text</red>` for colors'
             $result = ConvertTo-SpectreMarkup -Text $text
-            $result | Should -Be 'Use [grey on grey15]&lt;red&gt;text&lt;/red&gt;[/] for colors'
+            $result | Should -Be 'Use [grey on grey15]<red>text</red>[/] for colors'
         }
 
-        It 'Escapes square brackets in code' {
+        It 'Escapes square brackets in code by doubling' {
             $text = 'Use `[bold]text[/]` for bold'
             $result = ConvertTo-SpectreMarkup -Text $text
-            $result | Should -Be 'Use [grey on grey15]&#91;bold&#93;text&#91;/&#93;[/] for bold'
+            $result | Should -Be 'Use [grey on grey15][[bold]]text[[/]][/] for bold'
         }
     }
 

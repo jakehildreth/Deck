@@ -108,4 +108,65 @@ Describe 'New-TableRenderable' {
             $result | Should -BeOfType [Spectre.Console.Text]
         }
     }
+
+    Context 'Cell markup conversion (issue #25)' {
+        BeforeAll {
+            $script:renderTable = {
+                param($renderable)
+                $writer = [System.IO.StringWriter]::new()
+                $settings = [Spectre.Console.AnsiConsoleSettings]::new()
+                $settings.Ansi = [Spectre.Console.AnsiSupport]::Yes
+                $settings.ColorSystem = [Spectre.Console.ColorSystem]::TrueColor
+                $settings.Out = [Spectre.Console.AnsiConsoleOutput]::new($writer)
+                $console = [Spectre.Console.AnsiConsole]::Create($settings)
+                $console.Write($renderable)
+                $writer.ToString()
+            }
+        }
+
+        It 'Renders a markdown link as an OSC 8 hyperlink' {
+            $md = @'
+| Site |
+|------|
+| [example](https://example.com) |
+'@
+            $output = & $script:renderTable (New-TableRenderable -RawTable $md)
+            # OSC 8: ESC ] 8 ; params ; URI ESC \  text  ESC ] 8 ; ; ESC \
+            $output | Should -Match "$([char]27)\]8;[^\a]*https://example\.com"
+            $output | Should -Match 'example'
+            $output | Should -Not -Match '\[example\]'
+        }
+
+        It 'Renders HTML color tag as ANSI color, not literal tag' {
+            $md = @'
+| Status |
+|--------|
+| <green>online</green> |
+'@
+            $output = & $script:renderTable (New-TableRenderable -RawTable $md)
+            $output | Should -Not -Match '<green>'
+            $output | Should -Match "$([char]27)\["
+        }
+
+        It 'Renders bold cell as ANSI bold, not literal asterisks' {
+            $md = @'
+| Col |
+|-----|
+| **important** |
+'@
+            $output = & $script:renderTable (New-TableRenderable -RawTable $md)
+            $output | Should -Not -Match '\*\*'
+            $output | Should -Match 'important'
+        }
+
+        It 'Converts a leading dash bullet in a cell to a bullet character' {
+            $md = @'
+| Delta |
+|-------|
+| - 5%  |
+'@
+            $output = & $script:renderTable (New-TableRenderable -RawTable $md)
+            $output | Should -Match '• 5%'
+        }
+    }
 }
