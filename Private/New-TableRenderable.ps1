@@ -79,7 +79,7 @@ function New-TableRenderable {
         }
 
         # --- parse header row ---
-        $headerCells = @($lines[0].Trim().Trim('|') -split '\|' | ForEach-Object { $_.Trim() })
+        $headerCells = @($lines[0].Trim().Trim('|') -split '\|' | ForEach-Object { ConvertTo-TableCell -Text $_.Trim() })
 
         # --- parse separator row for alignment ---
         $separatorCells = @($lines[1].Trim().Trim('|') -split '\|' | ForEach-Object { $_.Trim() })
@@ -108,7 +108,7 @@ function New-TableRenderable {
         # --- build PSCustomObjects from data rows ---
         $dataLines = $lines | Select-Object -Skip 2
         $dataObjects = foreach ($dataLine in $dataLines) {
-            $cells = @($dataLine.Trim().Trim('|') -split '\|' | ForEach-Object { $_.Trim() })
+            $cells = @($dataLine.Trim().Trim('|') -split '\|' | ForEach-Object { ConvertTo-TableCell -Text $_.Trim() })
             $row = [ordered]@{}
             for ($i = 0; $i -lt $headerCells.Count; $i++) {
                 $columnName = if ($headerCells[$i]) { $headerCells[$i] } else { ' ' }
@@ -119,10 +119,12 @@ function New-TableRenderable {
         }
 
         # --- pipe to Format-SpectreTable ---
+        # AllowMarkup is required: cells now contain Spectre markup from ConvertTo-TableCell
         $tableParams = @{
-            Data   = $dataObjects
-            Border = 'Rounded'
-            Property = $properties
+            Data        = $dataObjects
+            Border      = 'Rounded'
+            Property    = $properties
+            AllowMarkup = $true
         }
         $tableRenderable = Format-SpectreTable @tableParams
 
