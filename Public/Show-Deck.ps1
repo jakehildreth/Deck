@@ -124,7 +124,7 @@ function Show-Deck {
 
         Bullet Behavior:
         - Progressive (*): each forward keypress reveals one bullet; each backward
-          keypress un-reveals one.
+          keypress un-reveals one. Supported in content, image, and multi-column slides.
         - Static (-): all bullets visible immediately on slide entry.
 
         Intentionally Blank Slides:
@@ -163,9 +163,9 @@ function Show-Deck {
         h3Color, border, borderStyle, autoAdvance.
 
         Slide Types:
-        - Title:        Single # heading (large figlet text)
-        - Section:      Single ## heading (medium figlet text)
-        - Content:      ### heading with body content
+        - Title:        Single # heading, no body (large centered figlet text)
+        - Section:      Single ## heading, no body (medium centered figlet text)
+        - Content:      #, ##, or ### heading with body content, or body only
         - Multi-column: Content split with ||| delimiter (delimiter must be on own line)
         - Image:        Text content with ![alt](path) image reference
 
@@ -391,19 +391,21 @@ function Show-Deck {
                         $testRenderables = [System.Collections.Generic.List[object]]::new()
                         
                         # Check for header
-                        if ($slide.Content -match '^###\s+(.+?)(?:\r?\n|$)') {
-                            $headerText = $Matches[1].Trim()
-                            $miniFontPath = Join-Path $PSScriptRoot '../Fonts/mini.flf'
-                            if (Test-Path $miniFontPath) {
-                                $font = [Spectre.Console.FigletFont]::Load($miniFontPath)
+                        if ($slide.Content -match '^(#{1,3})\s+(.+?)(?:\r?\n|$)') {
+                            $headingLevel = $Matches[1].Length
+                            $headerText = $Matches[2].Trim()
+                            $defaultFont = if ($headingLevel -eq 3) { 'mini' } elseif ($headingLevel -eq 2) { 'small' } else { 'small' }
+                            $fontPath = Join-Path $PSScriptRoot "../Fonts/$defaultFont.flf"
+                            if (Test-Path $fontPath) {
+                                $font = [Spectre.Console.FigletFont]::Load($fontPath)
                                 $testFiglet = [Spectre.Console.FigletText]::new($font, $headerText)
                             } else {
                                 $testFiglet = [Spectre.Console.FigletText]::new($headerText)
                             }
                             $testFiglet.Justification = [Spectre.Console.Justify]::Center
                             $testRenderables.Add($testFiglet)
-                            
-                            $bodyContent = $slide.Content -replace '^###\s+.+?(\r?\n|$)', ''
+
+                            $bodyContent = $slide.Content -replace '^#{1,3}\s+.+?(\r?\n|$)', ''
                         } else {
                             $bodyContent = $slide.Content
                         }
@@ -492,15 +494,15 @@ function Show-Deck {
                 if ($slide.Content -match '^\s*#\s+.+$' -and $slide.Content -notmatch '\n[^#]') {
                     # Title slide: Only has # heading, no other content
                     Write-Verbose "Rendering title slide $($currentSlide + 1)/$totalSlides"
-                    Show-TitleSlide -Slide $slide -Settings $slideSettings -IsFirstSlide:($currentSlide -eq 0) -CurrentSlide ($currentSlide + 1) -TotalSlides $totalSlides
+                    Show-TitleSlide -Slide $slide -Settings $slideSettings -IsFirstSlide:($currentSlide -eq 0) -VisibleBullets $visibleBullets[$currentSlide] -CurrentSlide ($currentSlide + 1) -TotalSlides $totalSlides
                 } elseif ($slide.Content -match '^\s*##\s+.+$' -and $slide.Content -notmatch '\n[^#]') {
                     # Section slide: Only has ## heading, no other content
                     Write-Verbose "Rendering section slide $($currentSlide + 1)/$totalSlides"
-                    Show-SectionSlide -Slide $slide -Settings $slideSettings -CurrentSlide ($currentSlide + 1) -TotalSlides $totalSlides
+                    Show-SectionSlide -Slide $slide -Settings $slideSettings -VisibleBullets $visibleBullets[$currentSlide] -CurrentSlide ($currentSlide + 1) -TotalSlides $totalSlides
                 } elseif ($slide.Content -match '\|\|\|') {
                     # Multi-column slide: Contains ||| delimiter
                     Write-Verbose "Rendering multi-column slide $($currentSlide + 1)/$totalSlides"
-                    Show-MultiColumnSlide -Slide $slide -Settings $slideSettings -CurrentSlide ($currentSlide + 1) -TotalSlides $totalSlides
+                    Show-MultiColumnSlide -Slide $slide -Settings $slideSettings -VisibleBullets $visibleBullets[$currentSlide] -CurrentSlide ($currentSlide + 1) -TotalSlides $totalSlides
                 } elseif ($slide.Content -match '!\[[^\]]*\]\([^)]+\)' -and ($slide.Content -replace '!\[[^\]]*\]\([^)]+\)(?:\{width=\d+\})?', '').Trim().Length -gt 0) {
                     # Image slide: Contains an image AND has text content besides the image
                     # But first check if the image is inside a code block (skip if it's example code)

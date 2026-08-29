@@ -119,6 +119,47 @@ Describe 'Show-Deck' {
         }
     }
 
+    Context 'Slide Type Detection with Mixed Content' {
+        It 'Should not treat H1 with body as a title slide' {
+            $titleOnlyPattern = '^\s*#\s+.+$'
+            $noBodyPattern = '\n[^#]'
+
+            $h1WithBody = "# Title`n`nBody text here"
+            ($h1WithBody -match $titleOnlyPattern -and $h1WithBody -notmatch $noBodyPattern) | Should -Be $false
+        }
+
+        It 'Should not treat H2 with body as a section slide' {
+            $sectionOnlyPattern = '^\s*##\s+.+$'
+            $noBodyPattern = '\n[^#]'
+
+            $h2WithBody = "## Section`n`nBody text here"
+            ($h2WithBody -match $sectionOnlyPattern -and $h2WithBody -notmatch $noBodyPattern) | Should -Be $false
+        }
+
+        It 'Should still treat heading-only H1 as a title slide' {
+            $titleOnlyPattern = '^\s*#\s+.+$'
+            $noBodyPattern = '\n[^#]'
+
+            $h1Only = "# Title"
+            ($h1Only -match $titleOnlyPattern -and $h1Only -notmatch $noBodyPattern) | Should -Be $true
+        }
+
+        It 'Should still treat heading-only H2 as a section slide' {
+            $sectionOnlyPattern = '^\s*##\s+.+$'
+            $noBodyPattern = '\n[^#]'
+
+            $h2Only = "## Section"
+            ($h2Only -match $sectionOnlyPattern -and $h2Only -notmatch $noBodyPattern) | Should -Be $true
+        }
+
+        It 'Should detect H1 heading for content slide header extraction' {
+            $contentPattern = '^#{1,3}\s+(.+?)(?:\r?\n|$)'
+            "# Big Title`n`nBody" | Should -Match $contentPattern
+            "## Section`n`nBody" | Should -Match $contentPattern
+            "### Header`n`nBody" | Should -Match $contentPattern
+        }
+    }
+
     Context 'StartSlide Validation' {
         It 'Should throw a terminating error when StartSlide exceeds the slide count' {
             # multiSlideFile has 3 slides; 4 is out of range

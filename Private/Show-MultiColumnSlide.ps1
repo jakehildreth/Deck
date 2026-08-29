@@ -114,11 +114,12 @@ Get-Process | Where-Object CPU -gt 100
         - Markdown formatting supported (bold, italic, code, strikethrough)
         - Code blocks with syntax highlighting
         - Bullet lists (both - and * styles)
+        - Progressive bullets (*) reveal one at a time with VisibleBullets
         - Plain text paragraphs
-        
+
         Heading Support:
-        - Optional ### heading renders above columns
-        - Heading uses h3 font (default: 'mini')
+        - Optional #, ##, or ### heading renders above columns
+        - Heading font and color follow the h1/h2/h3 and h1Color/h2Color/h3Color settings
         - Heading centered across full slide width
         - Color override via <color>text</color> or <span style="color:name">text</span>
         
@@ -135,6 +136,9 @@ Get-Process | Where-Object CPU -gt 100
 
         [Parameter(Mandatory = $true)]
         [hashtable]$Settings,
+
+        [Parameter(Mandatory = $false)]
+        [int]$VisibleBullets = [int]::MaxValue,
 
         [Parameter(Mandatory = $false)]
         [int]$CurrentSlide = 1,
@@ -159,11 +163,12 @@ Get-Process | Where-Object CPU -gt 100
             $headerText = $null
             $bodyContent = $null
 
-            if ($Slide.Content -match '^###\s+(.+?)(?:\r?\n|$)') {
+            if ($Slide.Content -match '^(#{1,3})\s+(.+?)(?:\r?\n|$)') {
                 $hasHeader = $true
-                $headerText = $Matches[1].Trim()
-                Write-Verbose "  Header: $headerText"
-                
+                $headingLevel = $Matches[1].Length
+                $headerText = $Matches[2].Trim()
+                Write-Verbose "  Header (H$headingLevel): $headerText"
+
                 # Check for color tags in heading text and extract color
                 $headingColor = $null
                 if ($headerText -match '<(\w+)>.*?</\1>') {
@@ -173,13 +178,13 @@ Get-Process | Where-Object CPU -gt 100
                     $headingColor = $Matches[1]
                     Write-Verbose "  Extracted color from span: $headingColor"
                 }
-                
+
                 # Strip HTML tags from header text
                 $headerText = $headerText -replace "<span\s+style=['""]color:\w+['""]>(.*?)</span>", '$1'
                 $headerText = $headerText -replace '<(\w+)>(.*?)</\1>', '$2'
-                
+
                 # Extract content after header
-                $bodyContent = $Slide.Content -replace '^###\s+.+?(\r?\n|$)', ''
+                $bodyContent = $Slide.Content -replace '^#{1,3}\s+.+?(\r?\n|$)', ''
                 $bodyContent = $bodyContent.Trim()
             } else {
                 # No header, use all content
@@ -202,12 +207,14 @@ Get-Process | Where-Object CPU -gt 100
             # Add header figlet if present
             if ($hasHeader) {
                 # Convert color name to Spectre.Console.Color
-                $colorName = if ($headingColor) { 
-                    $headingColor 
-                } elseif ($Settings.h3Color) { 
-                    $Settings.h3Color 
-                } else { 
-                    $Settings.foreground 
+                $headingLevelKey = "h$headingLevel"
+                $colorSettingKey = "${headingLevelKey}Color"
+                $colorName = if ($headingColor) {
+                    $headingColor
+                } elseif ($Settings[$colorSettingKey]) {
+                    $Settings[$colorSettingKey]
+                } else {
+                    $Settings.foreground
                 }
                 $figletColor = Get-SpectreColorFromSettings -ColorName $colorName -SettingName 'Header'
 
@@ -217,8 +224,10 @@ Get-Process | Where-Object CPU -gt 100
                     Color = $figletColor
                     Justification = 'Center'
                 }
-                # Default to 'mini' font if h3 is 'default', otherwise use specified font
-                $fontName = if (-not $Settings.h3 -or $Settings.h3 -eq 'default') { 'mini' } else { $Settings.h3 }
+                # Use the font for the detected heading level; fall back to 'mini' for h3
+                $fontSetting = $Settings[$headingLevelKey]
+                $defaultFont = if ($headingLevelKey -eq 'h3') { 'mini' } else { 'default' }
+                $fontName = if (-not $fontSetting -or $fontSetting -eq 'default') { $defaultFont } else { $fontSetting }
                 $fontPath = if (Test-Path $fontName) {
                     $fontName
                 } else {
@@ -226,16 +235,41 @@ Get-Process | Where-Object CPU -gt 100
                 }
                 if (Test-Path $fontPath) {
                     $figletParams['FontPath'] = $fontPath
-                    Write-Verbose "  Using h3 font: $fontName"
+                    Write-Verbose "  Using $headingLevelKey font: $fontName"
                 }
                 $figlet = New-FigletText @figletParams
                 $renderables.Add($figlet)
             }
 
+            # Progressive bullet state: single counter across all columns (reading order)
+            $progressiveBulletCount = 0
+            $visibleBulletCount = 0
+
+            # Compute max line width per column from unfiltered content for stable layout.
+            # Cached on the slide so subsequent reveals don't recompute.
+            if (-not $Slide.PSObject.Properties['MaxColumnWidths']) {
+                $maxWidths = @()
+                foreach ($columnContent in $columns) {
+                    if ($columnContent) {
+                        $colMax = ($columnContent -split "`r?`n" | ForEach-Object {
+                            $stripped = $_ -replace '<([a-zA-Z][a-zA-Z0-9]*)>(.*?)</\1>', '$2'
+                            $stripped = $stripped -replace '<span\s+style=[''"]color:\s*([a-zA-Z][a-zA-Z0-9]*)[''"]>(.*?)</span>', '$2'
+                            $stripped.Length
+                        } | Measure-Object -Maximum).Maximum
+                        $maxWidths += $colMax
+                    } else {
+                        $maxWidths += 0
+                    }
+                }
+                Add-Member -InputObject $Slide -NotePropertyName 'MaxColumnWidths' -NotePropertyValue $maxWidths -Force
+            }
+
             # Create column renderables
             $columnRenderables = [System.Collections.Generic.List[object]]::new()
             
+            $columnIndex = -1
             foreach ($columnContent in $columns) {
+                $columnIndex++
                 if ($columnContent) {
                     # Parse code blocks in this column
                     $columnSegments = ConvertTo-CodeBlockSegments -Content $columnContent
@@ -261,9 +295,20 @@ Get-Process | Where-Object CPU -gt 100
                             $tableRenderable = New-TableRenderable -RawTable $segment.RawTable
                             $columnParts.Add($tableRenderable)
                         } else {
-                            # Render text
+                            # Render text, filtering progressive bullets against the global counter
                             $textLines = $segment.Content -split "`r?`n" | ForEach-Object {
-                                ConvertTo-SpectreMarkup -Text $_
+                                if ($_ -match '^\s*\*\s+') {
+                                    $progressiveBulletCount++
+                                    if ($visibleBulletCount -lt $VisibleBullets) {
+                                        $visibleBulletCount++
+                                        ConvertTo-SpectreMarkup -Text $_
+                                    } else {
+                                        # Pad to column's max width to prevent horizontal layout shift
+                                        ' ' * $Slide.MaxColumnWidths[$columnIndex]
+                                    }
+                                } else {
+                                    ConvertTo-SpectreMarkup -Text $_
+                                }
                             }
                             $textMarkup = [Spectre.Console.Markup]::new(($textLines -join "`n"))
                             $columnParts.Add($textMarkup)
@@ -284,15 +329,20 @@ Get-Process | Where-Object CPU -gt 100
                 }
             }
 
+            # Store total progressive bullet count on the slide object for navigation
+            if (-not $Slide.PSObject.Properties['TotalProgressiveBullets']) {
+                Add-Member -InputObject $Slide -NotePropertyName 'TotalProgressiveBullets' -NotePropertyValue $progressiveBulletCount -Force
+            }
+
             # Create columns layout using Grid for equal-width columns
             # Grid provides explicit control over column widths
             $columnCount = $columnRenderables.Count
-            
+
             Write-Verbose "  Creating $columnCount equal-width columns using Grid"
-            
+
             # Create a Grid with equal-width columns
             $grid = [Spectre.Console.Grid]::new()
-            
+
             # Add columns to the grid (one GridColumn per content column)
             for ($i = 0; $i -lt $columnCount; $i++) {
                 $gridColumn = [Spectre.Console.GridColumn]::new()
@@ -300,41 +350,73 @@ Get-Process | Where-Object CPU -gt 100
                 $gridColumn.Padding = [Spectre.Console.Padding]::new(2, 0, 2, 0)  # Horizontal padding
                 $grid.AddColumn($gridColumn) | Out-Null
             }
-            
+
             # Add content as a single row with all columns
             $grid.AddRow($columnRenderables.ToArray()) | Out-Null
-            
-            # Measure grid height BEFORE wrapping in alignment
-            # This ensures accurate measurement without Format-SpectreAligned interference
-            $renderablesForMeasurement = [System.Collections.Generic.List[object]]::new($renderables)
-            $renderablesForMeasurement.Add($grid)
-            $rowsForMeasurement = [Spectre.Console.Rows]::new([object[]]$renderablesForMeasurement.ToArray())
-            
-            # Measure the actual height of the rendered content
-            # Account for horizontal padding (4 left + 4 right = 8 total)
-            $availableWidth = $windowWidth - 8
-            $contentSize = Get-SpectreRenderableSize -Renderable $rowsForMeasurement -ContainerWidth $availableWidth
-            $actualContentHeight = $contentSize.Height
-            
+
+            # Measure height from unfiltered content so progressive bullet reveals
+            # don't shift the layout. Compute once, cache on the slide object.
+            if (-not $Slide.PSObject.Properties['FullContentHeight']) {
+                # Build a temporary grid with ALL bullets visible for measurement
+                $measureColumns = [System.Collections.Generic.List[object]]::new()
+                foreach ($columnContent in $columns) {
+                    if ($columnContent) {
+                        $measureSegments = ConvertTo-CodeBlockSegments -Content $columnContent
+                        $measureParts = [System.Collections.Generic.List[object]]::new()
+                        foreach ($segment in $measureSegments) {
+                            if ($segment.Type -eq 'Code') {
+                                $measureParams = @{ Content = $segment.Content }
+                                if ($segment.Language) { $measureParams['Language'] = $segment.Language }
+                                $measureParts.Add((New-CodeBlockPanel @measureParams))
+                            } elseif ($segment.Type -eq 'Table') {
+                                $measureParts.Add((New-TableRenderable -RawTable $segment.RawTable))
+                            } else {
+                                $measureLines = $segment.Content -split "`r?`n" | ForEach-Object { ConvertTo-SpectreMarkup -Text $_ }
+                                $measureParts.Add([Spectre.Console.Markup]::new(($measureLines -join "`n")))
+                            }
+                        }
+                        if ($measureParts.Count -gt 1) {
+                            $measureColumns.Add([Spectre.Console.Rows]::new([object[]]$measureParts.ToArray()))
+                        } else {
+                            $measureColumns.Add($measureParts[0])
+                        }
+                    } else {
+                        $measureColumns.Add([Spectre.Console.Text]::new(""))
+                    }
+                }
+                $measureGrid = [Spectre.Console.Grid]::new()
+                for ($i = 0; $i -lt $columnCount; $i++) {
+                    $mgc = [Spectre.Console.GridColumn]::new()
+                    $mgc.NoWrap = $false
+                    $mgc.Padding = [Spectre.Console.Padding]::new(2, 0, 2, 0)
+                    $measureGrid.AddColumn($mgc) | Out-Null
+                }
+                $measureGrid.AddRow($measureColumns.ToArray()) | Out-Null
+                $measureRenderables = [System.Collections.Generic.List[object]]::new($renderables)
+                $measureRenderables.Add($measureGrid)
+                $measureRows = [Spectre.Console.Rows]::new([object[]]$measureRenderables.ToArray())
+                $fullSize = Get-SpectreRenderableSize -Renderable $measureRows -ContainerWidth ($windowWidth - 8)
+                Add-Member -InputObject $Slide -NotePropertyName 'FullContentHeight' -NotePropertyValue $fullSize.Height -Force
+            }
+            $actualContentHeight = $Slide.FullContentHeight
+
             # Now center the grid for display
             $centeredGrid = Format-SpectreAligned -Data $grid -HorizontalAlignment Center
             $renderables.Add($centeredGrid)
 
             # Combine renderables into a Rows layout for rendering
             $rows = [Spectre.Console.Rows]::new([object[]]$renderables.ToArray())
-            
-            # Calculate padding
-            # Add safety buffer if content contains code blocks (measurement might be slightly off)
+
+            # Calculate padding using the cached full-content height
             $hasCodeBlocks = $columnRenderables | ForEach-Object { $_ } | Where-Object { $_ -is [Spectre.Console.Panel] }
             $heightBuffer = if ($hasCodeBlocks) { 2 } else { 0 }
-            
+
             $borderHeight = 2
             $remainingSpace = $windowHeight - $actualContentHeight - $borderHeight - $heightBuffer
             $topPadding = [math]::Max(0, [math]::Ceiling($remainingSpace / 2.0))
             $bottomPadding = [math]::Max(0, $remainingSpace - $topPadding)
-            
+
             Write-Verbose "  Content height: $actualContentHeight, top padding: $topPadding, bottom padding: $bottomPadding"
-            
             # Create panel with internal padding
             $panel = [Spectre.Console.Panel]::new($rows)
             $panel.Expand = $true

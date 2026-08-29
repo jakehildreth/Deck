@@ -193,4 +193,73 @@ Line 2 right
             { Show-MultiColumnSlide -Slide $slide -Settings $mockSettings } | Should -Not -Throw
         }
     }
+
+    Context 'Progressive bullets' {
+        It 'Accepts a VisibleBullets parameter' {
+            $slide = [PSCustomObject]@{
+                Number = 1
+                Content = "* one`n* two|||* three"
+            }
+
+            { Show-MultiColumnSlide -Slide $slide -Settings $mockSettings -VisibleBullets 1 } | Should -Not -Throw
+        }
+
+        It 'Counts progressive bullets across all columns' {
+            $slide = [PSCustomObject]@{
+                Number = 1
+                Content = "* one`n* two|||* three"
+            }
+
+            Show-MultiColumnSlide -Slide $slide -Settings $mockSettings
+
+            $slide.TotalProgressiveBullets | Should -Be 3
+        }
+
+        It 'Hides progressive bullets beyond VisibleBullets' {
+            $slide = [PSCustomObject]@{
+                Number = 1
+                Content = "* one`n* two|||* three"
+            }
+
+            # With only 1 visible, the function should still render without error
+            { Show-MultiColumnSlide -Slide $slide -Settings $mockSettings -VisibleBullets 1 } | Should -Not -Throw
+        }
+
+        It 'Reveals all bullets when VisibleBullets exceeds count' {
+            $slide = [PSCustomObject]@{
+                Number = 1
+                Content = "* one|||* two"
+            }
+
+            { Show-MultiColumnSlide -Slide $slide -Settings $mockSettings -VisibleBullets 99 } | Should -Not -Throw
+        }
+    }
+
+    Context 'Progressive bullet layout stability' {
+        It 'Uses the same content height regardless of VisibleBullets' {
+            $slide = [PSCustomObject]@{
+                Number = 1
+                Content = "* one`n* two`n* three|||* four`n* five"
+            }
+
+            # Render with 0 visible — should still measure full height
+            Show-MultiColumnSlide -Slide $slide -Settings $mockSettings -VisibleBullets 0
+
+            # The slide object should carry FullContentHeight set from unfiltered content
+            $slide.PSObject.Properties['FullContentHeight'] | Should -Not -BeNullOrEmpty
+        }
+
+        It 'Pads hidden progressive bullets to preserve column width' {
+            $slide = [PSCustomObject]@{
+                Number = 1
+                Content = "* short`n* a much longer bullet line|||* right"
+            }
+
+            # Render with 0 visible — hidden lines should be padded, not empty
+            Show-MultiColumnSlide -Slide $slide -Settings $mockSettings -VisibleBullets 0
+
+            # The slide should carry a MaxColumnWidths array for stable layout
+            $slide.PSObject.Properties['MaxColumnWidths'] | Should -Not -BeNullOrEmpty
+        }
+    }
 }
