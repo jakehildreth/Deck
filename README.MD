@@ -1,4 +1,4 @@
-﻿![The Deck logo displays the word "Deck" in a chunky pixel/bitmap font with a tan and beige color on a black background, evoking a retro video game version of a deck.](Deck.png)
+![The Deck logo displays the word "Deck" in a chunky pixel/bitmap font with a tan and beige color on a black background, evoking a retro video game version of a deck.](Deck.png)
 # Deck
 
 Terminal-based presentations from Markdown files using PowerShell.
@@ -79,14 +79,27 @@ Show-Deck -Path ./presentation.md -StartSlide 5
 
 ### Slide Types
 
-* Title Slides - Single `#` heading with large figlet text
-* Section Slides - Single `##` heading with medium figlet text
-* Content Slides - `###` heading with body content
+* Title Slides - Single `#` heading with no body, large centered figlet text
+* Section Slides - Single `##` heading with no body, medium centered figlet text
+* Content Slides - `#`, `##`, or `###` heading with body content (H1/H2 headings render as figlet above the body), or body with no heading
 * Image Slides - Two-panel layout with content left (60%), image right (40%)
-* Multi-Column Slides - Split content with `|||` delimiter (delimiter must be on its own line)
+* Multi-Column Slides - Split content with `|||` delimiter (delimiter must be on its own line), with progressive bullet support per column
 * Syntax Highlighting - Fenced code blocks with language-aware highlighting via TextMate
 
 Tables, code blocks, and images can appear within any content, image, or multi-column slide.
+
+#### Heading Mixing
+
+An H1 or H2 heading followed by body content renders the heading as figlet text above the body:
+
+```markdown
+## H2 With Progressive Bullets
+
+* First point revealed on entry
+* Second point revealed on next keypress
+```
+
+A `#` or `##` heading alone (no body) is still a title or section slide.
 
 #### Image Slides
 
@@ -128,6 +141,8 @@ Markdown tables render as rounded Spectre.Console tables:
 
 Tables work on content slides, image slides, and multi-column slides.
 
+Inline markup renders inside table cells: `**bold**`, `_italic_`, `` `code` ``, `~~strikethrough~~`, colors, and [links](#links). A leading `- ` or `* ` (marker + space) in a cell renders as a `•` bullet; data like `-5%` (no space) stays literal. See [Examples/Features/TableCellMarkupTest.md](Examples/Features/TableCellMarkupTest.md).
+
 #### Syntax Highlighting
 
 Fenced code blocks with a language identifier get automatic syntax highlighting powered by [TextMate](https://github.com/trackd/TextMate):
@@ -145,13 +160,24 @@ Renders in a rounded panel with language header and full color tokenization. Sup
 * Progressive bullets using `*` — revealed one at a time with each forward keypress; navigating backward un-reveals one at a time
 * Static bullets using `-` — all visible immediately on slide entry
 
+Both styles work in content, image, and multi-column slides; each column in a multi-column slide reveals its own bullets.
+
 ### Inline Formatting
 
 * `**bold**` or `__bold__`  
 * `*italic*` or `_italic_`  
 * `` `code` ``  
 * `~~strikethrough~~`
+* `[link text](https://url)` — clickable hyperlink
 * `<colorname>text</colorname>` or `<span style="color:colorname">text</span>` for colors
+
+#### Links
+
+Markdown links become clickable hyperlinks in terminals that support OSC 8 (Windows Terminal, iTerm2, Ghostty, WezTerm). Elsewhere they degrade to plain display text. Links work in body text and in table cells.
+
+#### Strikethrough Support
+
+Spectre.Console exposes no strikethrough capability flag, so Deck detects support heuristically from `WT_SESSION` / `TERM_PROGRAM` / `TERM` and warns once per session when `~~text~~` is used in a terminal not known to support it. Override detection with the `DECK_STRIKETHROUGH` environment variable (`true` or `false`).
 
 #### Color Examples
 
@@ -307,6 +333,10 @@ Additional examples in `Examples/Features/`:
 - [BulletTest.md](Examples/Features/BulletTest.md) - Bullet reveal behavior
 - [TitleTest.md](Examples/Features/TitleTest.md) - Title and section slides
 - [TableTest.md](Examples/Features/TableTest.md) - Markdown table rendering
+- [TableCellMarkupTest.md](Examples/Features/TableCellMarkupTest.md) - Inline markup inside table cells
+- [LinkTest.md](Examples/Features/LinkTest.md) - Clickable links and strikethrough warning
+- [HeadingMixingTest.md](Examples/Features/HeadingMixingTest.md) - H1/H2 headings with body content
+- [MultiColumnBulletsTest.md](Examples/Features/MultiColumnBulletsTest.md) - Progressive bullets in multi-column slides
 - [SyntaxHighlightTest.md](Examples/Features/SyntaxHighlightTest.md) - Code block syntax highlighting
 - [AutoAdvanceTest.md](Examples/Features/AutoAdvanceTest.md) - Auto-advance timer with per-slide overrides
 
