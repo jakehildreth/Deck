@@ -17,14 +17,14 @@ function Show-ImageSlide {
         6. Filters progressive bullets (*) based on VisibleBullets parameter
         
         Images support both local file paths (relative or absolute) and web URLs
-        (http/https). The {width=N} suffix can specify maximum image width in characters.
+        (http/https). Images auto-size to fit the right panel.
         
         Left panel supports all content slide features including progressive bullets,
         code blocks, and markdown formatting.
 
     .PARAMETER Slide
         The slide object containing both text content and an image reference using
-        ![alt](path) or ![alt](path){width=N} syntax.
+        ![alt](path) syntax.
 
     .PARAMETER Settings
         The presentation settings hashtable containing:
@@ -66,7 +66,7 @@ function Show-ImageSlide {
 * Feature two
 * Feature three
 
-![Product Screenshot](./images/demo.png){width=80}
+![Product Screenshot](./images/demo.png)
 '@
         }
         Show-ImageSlide -Slide $slide -Settings $settings
@@ -97,7 +97,6 @@ Key benefits of our solution.
         
         Image Syntax:
         - Standard: ![alt text](path/to/image.png)
-        - With width: ![alt text](path/to/image.png){width=80}
         - Web URLs: ![alt text](https://example.com/image.png)
         
         Image Path Resolution:
@@ -147,7 +146,7 @@ Key benefits of our solution.
             $windowHeight = $dimensions.Height
 
             # Parse content to separate text from image
-            $imagePattern = '!\[([^\]]*)\]\(([^)]+)\)(?:\{width=(\d+)\})?'
+            $imagePattern = '!\[([^\]]*)\]\(([^)]+)\)'
             $imageMatch = [regex]::Match($Slide.Content, $imagePattern)
             
             if (-not $imageMatch.Success) {
@@ -156,10 +155,8 @@ Key benefits of our solution.
 
             $imagePath = $imageMatch.Groups[2].Value
             $imageAltText = $imageMatch.Groups[1].Value
-            $imageWidth = if ($imageMatch.Groups[3].Success) { [int]$imageMatch.Groups[3].Value } else { 0 }
 
             # Extract text content (everything except the image)
-            $textContent = $Slide.Content.Remove($imageMatch.Index, $imageMatch.Length).Trim()
 
             # Determine if text has a header
             $hasHeader = $false
@@ -409,11 +406,7 @@ Key benefits of our solution.
                 }
                 
                 # Calculate max width for image (allow for panel padding and border)
-                $maxImageWidth = if ($imageWidth -gt 0) {
-                    [math]::Min($imageWidth, $imageColumnWidth - 8)
-                } else {
-                    $imageColumnWidth - 8
-                }
+                $maxImageWidth = $imageColumnWidth - 8
                 
                 # Calculate max height for image (allow for panel padding, border, and some margin)
                 # Panel has vertical padding of 1 top + 1 bottom = 2, plus 2 for borders = 4 total

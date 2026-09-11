@@ -36,7 +36,7 @@ Different text on the left, same image concept.
 
 More content here in a paragraph format that explains something important.
 
-![GitHub Logo](https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png){width=80}
+![GitHub Logo](https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png)
 
 ---
 

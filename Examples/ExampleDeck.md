@@ -196,7 +196,7 @@ Color priority: inline tags > frontmatter settings > foreground
 
 Two-panel layout with text content and image side-by-side.
 
-Images auto-size to fit. Use `{width=N}` to set max width.
+Images auto-size to fit.
 
 ![PowerShell Logo](https://raw.githubusercontent.com/PowerShell/PowerShell/master/assets/Powershell_256.png)
 

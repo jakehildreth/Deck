@@ -113,10 +113,10 @@ Text content on the left.
 * Progressive bullets supported
 * Auto-sized images
 
-![Alt Text](image.png){width=80}
+![Alt Text](image.png)
 ```
 
-Images are auto-detected. Use relative or absolute paths. Optional `{width=N}` sets max width.
+Images are auto-detected and auto-size to fit. Use relative or absolute paths.
 
 Web images are supported:
 
