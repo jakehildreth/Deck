@@ -17,6 +17,8 @@ Two author-facing syntaxes converge on one internal representation (IR).
 ![center w:30% A figure caption](path.png)
 ```
 
+Deck removes recognized keywords, then uses the remaining alt text verbatim as the caption. In Markdown image syntax, quotes do not delimit captions; Deck renders them as caption characters.
+
 **HTML `<img>` tag:**
 
 ```markdown
@@ -50,7 +52,7 @@ Every inline image parses to one record:
 
 - `left` / `right` = **float**: an explicit-width Grid; text wraps in the text column beside the image; full-width flow resumes below.
 - `center` = **block**, centered horizontally. A caption, when present, renders dim beneath.
-- **none** (default) = full-width block; centering is moot at full width. To get a centered figure the author writes an explicit reduced width (e.g. `![center w:30% "caption"](img.png)`).
+- **none** (default) = full-width block; centering is moot at full width. To get a centered figure the author writes an explicit reduced width (e.g. `![center w:30% A figure caption](img.png)`).
 
 **Float at full width.** A float at 100% width leaves no text column, so the renderer ignores `align` and renders a plain block. Silently — no warning, no Strict error.
 
