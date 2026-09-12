@@ -71,7 +71,7 @@ function Show-ImageSlide {
         }
         Show-ImageSlide -Slide $slide -Settings $settings
 
-        Demonstrates image slide with heading, progressive bullets, and custom image width.
+        Demonstrates an image slide with a heading and progressive bullets.
 
     .EXAMPLE
         $slide = [PSCustomObject]@{
@@ -157,6 +157,7 @@ Key benefits of our solution.
             $imageAltText = $imageMatch.Groups[1].Value
 
             # Extract text content (everything except the image)
+            $textContent = $Slide.Content.Remove($imageMatch.Index, $imageMatch.Length).Trim()
 
             # Determine if text has a header
             $hasHeader = $false
