@@ -21,7 +21,7 @@ foreground: white
 
 | left   | center | right |
 |:-------|:------:|------:|
-| aaa    | bbb    | ccc   |
+| aaa    | bbb    | cccccccccc |
 | dddddd | ee     | f     |
 
 ---
