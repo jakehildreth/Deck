@@ -160,7 +160,7 @@ Get-Process | Select-Object Name
 
             # Parse code blocks, images, and tables FIRST before any bullet filtering
             $codeBlockPattern = '(?s)```(\w+)?\r?\n(.*?)\r?\n```'
-            $imagePattern = '!\[([^\]]*)\]\(([^)]+)\)(?:\{width=(\d+)\})?'
+            $imagePattern = '!\[([^\]]*)\]\(([^)]+)\)'
             $tablePattern = '(?m)^(\|.+\|)\r?\n(\|[\s:|\-]+\|)\r?\n((?:\|.+\|\r?\n?)+)'
             $segments = [System.Collections.Generic.List[object]]::new()
             $lastIndex = 0
@@ -182,7 +182,6 @@ Get-Process | Select-Object Name
                 }
                 
                 foreach ($match in [regex]::Matches($bodyContent, $imagePattern)) {
-                    $width = if ($match.Groups[3].Success) { [int]$match.Groups[3].Value } else { 0 }
                     $allMatches.Add(@{
                         Type = 'Image'
                         Match = $match
@@ -190,7 +189,6 @@ Get-Process | Select-Object Name
                         Length = $match.Length
                         AltText = $match.Groups[1].Value
                         Path = $match.Groups[2].Value
-                        Width = $width
                     })
                 }
                 
@@ -223,9 +221,9 @@ Get-Process | Select-Object Name
                     } elseif ($item.Type -eq 'Table') {
                         $segments.Add(@{ Type = 'Table'; RawTable = $item.RawTable })
                     } else {
-                        $segments.Add(@{ Type = 'Image'; AltText = $item.AltText; Path = $item.Path; Width = $item.Width })
+                        $segments.Add(@{ Type = 'Image'; AltText = $item.AltText; Path = $item.Path })
                     }
-                    
+
                     $lastIndex = $item.Index + $item.Length
                 }
                 
@@ -375,15 +373,9 @@ Get-Process | Select-Object Name
                                 $imagePath = Join-Path $markdownDir $imagePath
                             }
                             
-                            # Calculate max width (default to 80% of available width)
-                            $availableWidth = $windowWidth - 8  # Account for panel padding
-                            $maxWidth = if ($segment.Width -gt 0) {
-                                [math]::Min($segment.Width, $availableWidth)
-                            } else {
-                                [math]::Floor($availableWidth * 0.8)
-                            }
-                            
-                            # Load and render image
+                            # Auto-size to 80% of available width (account for panel padding)
+                            $availableWidth = $windowWidth - 8
+                            $maxWidth = [math]::Floor($availableWidth * 0.8)
                             $image = Get-SpectreImage -ImagePath $imagePath -MaxWidth $maxWidth
                             
                             # Center the image

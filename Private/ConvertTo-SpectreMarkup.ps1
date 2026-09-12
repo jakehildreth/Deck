@@ -130,8 +130,8 @@ function ConvertTo-SpectreMarkup {
         $result = $Text
 
         # Escape markdown image syntax before other conversions to prevent Spectre from parsing it
-        # ![alt](url) or ![alt](url){width=N} -> escaped brackets
-        $result = $result -replace '!\[([^\]]*)\]\(([^)]+)\)(\{width=\d+\})?', '![[${1}]]($2)$3'
+        # ![alt](url) -> escaped brackets
+        $result = $result -replace '!\[([^\]]*)\]\(([^)]+)\)', '![[${1}]]($2)'
 
         # Replace leading bullet markers (- and *) with unicode bullet character
         # Must run before code block protection so marker detection isn't affected

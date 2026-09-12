@@ -316,9 +316,9 @@ function Show-Deck {
                                 break
                             }
                         }
-                    } elseif ($slide.Content -match '!\[[^\]]*\]\([^)]+\)' -and ($slide.Content -replace '!\[[^\]]*\]\([^)]+\)(?:\{width=\d+\})?', '').Trim().Length -gt 0) {
+                    } elseif ($slide.Content -match '!\[[^\]]*\]\([^)]+\)' -and ($slide.Content -replace '!\[[^\]]*\]\([^)]+\)', '').Trim().Length -gt 0) {
                         # Image slide validation
-                        $imagePattern = '!\[([^\]]*)\]\(([^)]+)\)(?:\{width=(\d+)\})?'
+                        $imagePattern = '!\[([^\]]*)\]\(([^)]+)\)'
                         $imageMatch = [regex]::Match($slide.Content, $imagePattern)
                         $imagePath = $imageMatch.Groups[2].Value
                         
@@ -503,10 +503,10 @@ function Show-Deck {
                     # Multi-column slide: Contains ||| delimiter
                     Write-Verbose "Rendering multi-column slide $($currentSlide + 1)/$totalSlides"
                     Show-MultiColumnSlide -Slide $slide -Settings $slideSettings -VisibleBullets $visibleBullets[$currentSlide] -CurrentSlide ($currentSlide + 1) -TotalSlides $totalSlides
-                } elseif ($slide.Content -match '!\[[^\]]*\]\([^)]+\)' -and ($slide.Content -replace '!\[[^\]]*\]\([^)]+\)(?:\{width=\d+\})?', '').Trim().Length -gt 0) {
+                } elseif ($slide.Content -match '!\[[^\]]*\]\([^)]+\)' -and ($slide.Content -replace '!\[[^\]]*\]\([^)]+\)', '').Trim().Length -gt 0) {
                     # Image slide: Contains an image AND has text content besides the image
                     # But first check if the image is inside a code block (skip if it's example code)
-                    $imagePattern = '!\[([^\]]*)\]\(([^)]+)\)(?:\{width=(\d+)\})?'
+                    $imagePattern = '!\[([^\]]*)\]\(([^)]+)\)'
                     $imageMatch = [regex]::Match($slide.Content, $imagePattern)
                     $codeBlockPattern = '(?s)```(\w+)?\r?\n(.*?)\r?\n```'
                     $isInCodeBlock = $false
