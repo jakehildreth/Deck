@@ -116,6 +116,8 @@ function ConvertFrom-DeckMarkdown {
             'h2Color'       = $null
             'h3Color'       = $null
             autoAdvance     = 0
+            fadeBullets     = $false
+            fadeColor       = $null
         }
     }
 
@@ -331,6 +333,14 @@ function ConvertFrom-DeckMarkdown {
                     $overrides['autoAdvance'] = [int]$Matches[1]
                     Write-Verbose "    Override: autoAdvance = $($overrides['autoAdvance'])"
                 }
+                if ($tempContent -match '<!--\s*fadeBullets:\s*(true|false)\s*-->') {
+                    $overrides['fadeBullets'] = $Matches[1] -eq 'true'
+                    Write-Verbose "    Override: fadeBullets = $($overrides['fadeBullets'])"
+                }
+                if ($tempContent -match '<!--\s*fadeColor:\s*(\w+)\s*-->') {
+                    $overrides['fadeColor'] = $Matches[1]
+                    Write-Verbose "    Override: fadeColor = $($overrides['fadeColor'])"
+                }
                 
                 # Remove HTML comments from display content
                 $contentWithoutComments = $trimmed -replace '<!--\s*pagination:\s*(true|false)\s*-->\r?\n?', ''
@@ -344,6 +354,8 @@ function ConvertFrom-DeckMarkdown {
                 $contentWithoutComments = $contentWithoutComments -replace '<!--\s*border:\s*\w+\s*-->\r?\n?', ''
                 $contentWithoutComments = $contentWithoutComments -replace '<!--\s*borderStyle:\s*\w+\s*-->\r?\n?', ''
                 $contentWithoutComments = $contentWithoutComments -replace '<!--\s*autoAdvance:\s*\d+\s*-->\r?\n?', ''
+                $contentWithoutComments = $contentWithoutComments -replace '<!--\s*fadeBullets:\s*(true|false)\s*-->\r?\n?', ''
+                $contentWithoutComments = $contentWithoutComments -replace '<!--\s*fadeColor:\s*\w+\s*-->\r?\n?', ''
                 
                 # Trim content after removing comments to eliminate blank lines
                 $contentWithoutComments = $contentWithoutComments.Trim()

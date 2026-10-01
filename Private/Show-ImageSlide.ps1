@@ -299,7 +299,13 @@ Key benefits of our solution.
                 # Filter bullets ONLY in text segments
                 $progressiveBulletCount = 0
                 $visibleBulletCount = 0
+                # Slide-global render reveal index (matches the filter counter), so bullets
+                # in later segments are not mistaken for the newest.
+                $revealIndex = 0
                 
+                # Resolve the fade tone once (validates fadeColor, falls back to dim)
+                $fade = Resolve-FadeStyle -Settings $Settings
+
                 foreach ($segment in $segments) {
                     if ($segment.Type -eq 'Code') {
                         # Render code block in a panel with syntax highlighting
@@ -318,17 +324,18 @@ Key benefits of our solution.
                         $tableRenderable = New-TableRenderable -RawTable $segment.RawTable
                         $leftRenderables.Add($tableRenderable)
                     } else {
-                        # Filter bullets in text segments
+                        # Filter bullets in text segments. Lines stay RAW markdown here;
+                        # conversion + fade happen once below.
                         $lines = $segment.Content -split "`r?`n"
                         $filteredLines = [System.Collections.Generic.List[string]]::new()
-                        
+
                         foreach ($line in $lines) {
                             # Check if line is a progressive bullet (*)
                             if ($line -match '^\s*\*\s+') {
                                 $progressiveBulletCount++
                                 if ($visibleBulletCount -lt $VisibleBullets) {
-                                    $filteredLines.Add($line)
                                     $visibleBulletCount++
+                                    $filteredLines.Add($line)
                                 } else {
                                     # Add blank line placeholder for hidden progressive bullets
                                     $filteredLines.Add("")
@@ -338,10 +345,25 @@ Key benefits of our solution.
                                 $filteredLines.Add($line)
                             }
                         }
-                        
-                        # Convert markdown formatting to Spectre markup
-                        $convertedLines = $filteredLines | ForEach-Object {
-                            ConvertTo-SpectreMarkup -Text $_
+
+                        # Single conversion point: visible raw bullets are converted (and faded
+                        # if enabled) by the helper; all other raw lines convert here. $revealIndex
+                        # is slide-global and incremented in a normal foreach loop: pipeline
+                        # scriptblocks use child scopes, which would drop the counter between
+                        # segments. Nothing is converted twice.
+                        $convertedLines = [System.Collections.Generic.List[string]]::new()
+                        foreach ($filteredLine in $filteredLines) {
+                            if ($filteredLine -match '^\s*\*\s+') {
+                                $isNewest = ($revealIndex -eq ($VisibleBullets - 1))
+                                $revealIndex++
+                                if ($fade.Enabled -and -not $isNewest) {
+                                    $convertedLines.Add((Format-ProgressiveBulletLine -Line $filteredLine -Fade -FadeColor $fade.Color))
+                                } else {
+                                    $convertedLines.Add((Format-ProgressiveBulletLine -Line $filteredLine))
+                                }
+                            } else {
+                                $convertedLines.Add((ConvertTo-SpectreMarkup -Text $filteredLine))
+                            }
                         }
                         
                         $textMarkup = [Spectre.Console.Markup]::new(($convertedLines -join "`n"))
