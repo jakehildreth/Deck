@@ -244,13 +244,17 @@ Get-Process | Select-Object Name
                 # Use a single counter across all segments to track visible bullets
                 $filteredSegments = [System.Collections.Generic.List[object]]::new()
                 $globalVisibleBullets = 0
+
+                # Resolve the fade tone once (validates fadeColor, falls back to dim)
+                $fade = Resolve-FadeStyle -Settings $Settings
                 
                 foreach ($segment in $segments) {
                     if ($segment.Type -eq 'Code' -or $segment.Type -eq 'Image' -or $segment.Type -eq 'Table') {
                         # Code blocks, images, and tables pass through unchanged
                         $filteredSegments.Add($segment)
                     } else {
-                        # Filter bullets in text segments
+                        # Filter bullets in text segments. Lines stay RAW markdown here;
+                        # conversion + fade happen once at the render stage below.
                         $lines = $segment.Content -split "`r?`n"
                         $filteredLines = [System.Collections.Generic.List[string]]::new()
                         
@@ -259,14 +263,15 @@ Get-Process | Select-Object Name
                             if ($line -match '^\s*\*\s+') {
                                 $progressiveBulletCount++
                                 if ($globalVisibleBullets -lt $VisibleBullets) {
-                                    $filteredLines.Add($line)
+                                    # Reveal index is 0-based in reveal order
                                     $globalVisibleBullets++
+                                    $filteredLines.Add($line)
                                 } else {
                                     # Add blank line placeholder for hidden progressive bullets
                                     $filteredLines.Add("")
                                 }
                             } else {
-                                # All other lines (including - bullets) are always shown
+                                # All other lines (including - bullets) are always shown, raw markdown
                                 $filteredLines.Add($line)
                             }
                         }
@@ -345,7 +350,10 @@ Get-Process | Select-Object Name
 
             # Add body content with code block and image support
             if ($bodyContent) {
-                # Render each segment (already parsed and filtered above)
+                # Render each segment (already parsed and filtered above).
+                # The reveal index is slide-global (matches the filter stage's counter),
+                # so bullets in later segments are not mistaken for the newest.
+                $revealIndex = 0
                 foreach ($segment in $filteredSegments) {
                     if ($segment.Type -eq 'Code') {
                         # Render code block in a panel with syntax highlighting
@@ -417,9 +425,24 @@ Get-Process | Select-Object Name
                         $availableWidth = $windowWidth - 8  # Account for panel padding (4 left + 4 right)
                         $leftPadding = [math]::Max(0, [math]::Floor(($availableWidth - $maxLineLength) / 2))
                         
-                        # Convert markdown formatting to Spectre markup
-                        $convertedLines = $lines | ForEach-Object {
-                            ConvertTo-SpectreMarkup -Text $_
+                        # Single conversion point: visible raw bullets are converted (and
+                        # faded if enabled) by the helper; all other raw lines convert here.
+                        # $revealIndex is slide-global (initialized outside the segment loop)
+                        # and incremented in a normal foreach loop: pipeline scriptblocks use
+                        # child scopes, which would drop the counter between segments.
+                        $convertedLines = [System.Collections.Generic.List[string]]::new()
+                        foreach ($line in $lines) {
+                            if ($line -match '^\s*\*\s+') {
+                                $isNewest = ($revealIndex -eq ($VisibleBullets - 1))
+                                $revealIndex++
+                                if ($fade.Enabled -and -not $isNewest) {
+                                    $convertedLines.Add((Format-ProgressiveBulletLine -Line $line -Fade -FadeColor $fade.Color))
+                                } else {
+                                    $convertedLines.Add((Format-ProgressiveBulletLine -Line $line))
+                                }
+                            } else {
+                                $convertedLines.Add((ConvertTo-SpectreMarkup -Text $line))
+                            }
                         }
                         
                         # Rebuild content with padding

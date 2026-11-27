@@ -296,12 +296,21 @@ Get-Process | Where-Object CPU -gt 100
                             $columnParts.Add($tableRenderable)
                         } else {
                             # Render text, filtering progressive bullets against the global counter
+                            # Resolve the fade tone once (validates fadeColor, falls back to dim)
+                            $fade = Resolve-FadeStyle -Settings $Settings
                             $textLines = $segment.Content -split "`r?`n" | ForEach-Object {
                                 if ($_ -match '^\s*\*\s+') {
                                     $progressiveBulletCount++
                                     if ($visibleBulletCount -lt $VisibleBullets) {
+                                        $revealIndex = $visibleBulletCount
                                         $visibleBulletCount++
-                                        ConvertTo-SpectreMarkup -Text $_
+                                        $isNewest = ($revealIndex -eq ($VisibleBullets - 1))
+                                        # Helper converts the line and applies the fade tone
+                                        if ($fade.Enabled -and -not $isNewest) {
+                                            Format-ProgressiveBulletLine -Line $_ -Fade -FadeColor $fade.Color
+                                        } else {
+                                            Format-ProgressiveBulletLine -Line $_
+                                        }
                                     } else {
                                         # Pad to column's max width to prevent horizontal layout shift
                                         ' ' * $Slide.MaxColumnWidths[$columnIndex]

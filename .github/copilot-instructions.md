@@ -49,6 +49,8 @@ Always skip parsing markup inside code:
 | [Get-TerminalDimensions](Private/Get-TerminalDimensions.ps1) | Terminal width/height detection |
 | [Get-BorderStyleFromSettings](Private/Get-BorderStyleFromSettings.ps1) | Resolve border style enum |
 | [Get-SpectreColorFromSettings](Private/Get-SpectreColorFromSettings.ps1) | Resolve color names/hex to Spectre colors |
+| [Resolve-FadeStyle](Private/Resolve-FadeStyle.ps1) | Resolve + validate fadeBullets/fadeColor → fade tone (dim default) |
+| [Format-ProgressiveBulletLine](Private/Format-ProgressiveBulletLine.ps1) | Convert a bullet line to markup and apply the fade tone |
 | [Get-PaginationText](Private/Get-PaginationText.ps1) | Render pagination in configured style |
 | [Import-DeckDependency](Private/Import-DeckDependency.ps1) | PwshSpectreConsole auto-install |
 | [Show-SadFace](Private/Show-SadFace.ps1) | Dependency failure ASCII art |

@@ -8,6 +8,8 @@ BeforeAll {
     . (Join-Path $modulePath 'Private/Get-PaginationText.ps1')
     . (Join-Path $modulePath 'Private/New-FigletText.ps1')
     . (Join-Path $modulePath 'Private/ConvertTo-SpectreMarkup.ps1')
+    . (Join-Path $modulePath 'Private/Resolve-FadeStyle.ps1')
+    . (Join-Path $modulePath 'Private/Format-ProgressiveBulletLine.ps1')
     . (Join-Path $modulePath 'Private/New-CodeBlockPanel.ps1')
     . (Join-Path $modulePath 'Private/New-TableRenderable.ps1')
     . (Join-Path $modulePath 'Private/Show-ImageSlide.ps1')
@@ -57,4 +59,56 @@ Describe 'Show-ImageSlide' {
             $output | Should -Match '\{width=80\}'
         }
     }
+
+    Context 'When fadeBullets is enabled' {
+        # Fade markup correctness is covered in Format-ProgressiveBulletLine.Tests.ps1.
+        # Smoke test: rendering faded colored bullets must not throw. h3 = 'default' keeps
+        # the figlet path from hitting a null-path Test-Path error.
+        It 'Should render faded colored bullets without errors' {
+            $slide = [PSCustomObject]@{
+                Number  = 1
+                Content = @'
+### Left
+
+* <span style="color:red">red point</span>
+* <span style="color:blue">blue point</span>
+
+![img](pic.png)
+'@
+                IsBlank = $false
+            }
+            $settings = @{ foreground = 'white'; h3 = 'default'; fadeBullets = $true; fadeColor = 'grey19' }
+
+            { Show-ImageSlide -Slide $slide -Settings $settings -VisibleBullets 2 } | Should -Not -Throw
+        }
+
+        It 'Should fade bullets against a slide-global reveal index across segments' {
+            # Regression: a per-segment render counter restarted at zero, so with bullets
+            # split by a code block and VisibleBullets 2, BOTH bullets were faded and no
+            # current bullet stayed full strength.
+            $slide = [PSCustomObject]@{
+                Number  = 1
+                Content = @'
+* first
+
+```powershell
+Get-Process
+```
+
+* second
+
+![img](pic.png)
+'@
+                IsBlank = $false
+            }
+            $settings = @{ foreground = 'white'; h3 = 'default'; fadeBullets = $true; fadeColor = 'grey19' }
+
+            Mock Format-ProgressiveBulletLine { $Line }
+            Show-ImageSlide -Slide $slide -Settings $settings -VisibleBullets 2
+
+            Should -Invoke Format-ProgressiveBulletLine -Times 1 -Exactly -ParameterFilter { $Line -like '* first' -and $Fade }
+            Should -Invoke Format-ProgressiveBulletLine -Times 1 -Exactly -ParameterFilter { $Line -like '* second' -and -not $Fade }
+        }
+    }
 }
+

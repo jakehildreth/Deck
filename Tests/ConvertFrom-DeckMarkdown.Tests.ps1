@@ -371,4 +371,69 @@ This slide requires manual advance
             $result.Slides[1].Overrides.autoAdvance | Should -Be 0
         }
     }
+    Context 'When fade settings are configured' {
+        It 'Should default fadeBullets to false and fadeColor to null when absent' {
+            # Arrange
+            $testFile = Join-Path $script:testDir 'fade-absent.md'
+            $content = @'
+### Slide Title
+
+Content here
+'@
+            Set-Content -Path $testFile -Value $content
+
+            # Act
+            $result = ConvertFrom-DeckMarkdown -Path $testFile
+
+            # Assert
+            $result.Settings.fadeBullets | Should -Be $false
+            $result.Settings.fadeColor | Should -BeNullOrEmpty
+        }
+
+        It 'Should parse fadeBullets bool and fadeColor from frontmatter' {
+            # Arrange
+            $testFile = Join-Path $script:testDir 'fade-global.md'
+            $content = @'
+---
+fadeBullets: true
+fadeColor: grey35
+---
+
+### Slide Title
+
+Content here
+'@
+            Set-Content -Path $testFile -Value $content
+
+            # Act
+            $result = ConvertFrom-DeckMarkdown -Path $testFile -WarningAction SilentlyContinue
+
+            # Assert
+            $result.Settings.fadeBullets | Should -Be $true
+            $result.Settings.fadeColor | Should -Be 'grey35'
+        }
+
+        It 'Should parse fadeBullets and fadeColor from per-slide override comments' {
+            # Arrange
+            $testFile = Join-Path $script:testDir 'fade-override.md'
+            $content = @'
+### Slide Title
+
+<!-- fadeBullets: true -->
+<!-- fadeColor: grey19 -->
+Content here
+'@
+            Set-Content -Path $testFile -Value $content
+
+            # Act
+            $result = ConvertFrom-DeckMarkdown -Path $testFile -WarningAction SilentlyContinue
+
+            # Assert
+            $result.Slides[0].Overrides.fadeBullets | Should -Be $true
+            $result.Slides[0].Overrides.fadeColor | Should -Be 'grey19'
+            # Override comments must be stripped from display content
+            $result.Slides[0].Content | Should -Not -Match 'fadeBullets'
+            $result.Slides[0].Content | Should -Not -Match 'fadeColor'
+        }
+    }
 }

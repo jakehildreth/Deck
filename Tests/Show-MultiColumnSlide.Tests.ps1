@@ -6,6 +6,8 @@ BeforeAll {
     . (Join-Path $modulePath 'Private/Get-PaginationText.ps1')
     . (Join-Path $modulePath 'Private/New-FigletText.ps1')
     . (Join-Path $modulePath 'Private/ConvertTo-SpectreMarkup.ps1')
+    . (Join-Path $modulePath 'Private/Resolve-FadeStyle.ps1')
+    . (Join-Path $modulePath 'Private/Format-ProgressiveBulletLine.ps1')
     . (Join-Path $modulePath 'Private/ConvertTo-CodeBlockSegments.ps1')
     . (Join-Path $modulePath 'Private/Show-MultiColumnSlide.ps1')
 
@@ -260,6 +262,27 @@ Line 2 right
 
             # The slide should carry a MaxColumnWidths array for stable layout
             $slide.PSObject.Properties['MaxColumnWidths'] | Should -Not -BeNullOrEmpty
+        }
+    }
+
+    Context 'When fadeBullets is enabled' {
+        # Fade markup correctness is covered in Format-ProgressiveBulletLine.Tests.ps1.
+        # Smoke test: rendering faded colored bullets across columns must not throw.
+        It 'Should render faded colored bullets without errors' {
+            $slide = [PSCustomObject]@{
+                Number  = 1
+                Content = "* <span style=`"color:red`">red</span>`n* <span style=`"color:blue`">blue</span>|||* <span style=`"color:green`">green</span>"
+            }
+            $fadeSettings = @{
+                background  = 'Black'
+                foreground  = 'White'
+                border      = 'Blue'
+                borderStyle = 'Rounded'
+                fadeBullets = $true
+                fadeColor   = 'grey19'
+            }
+
+            { Show-MultiColumnSlide -Slide $slide -Settings $fadeSettings -VisibleBullets 2 } | Should -Not -Throw
         }
     }
 }

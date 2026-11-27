@@ -219,6 +219,8 @@ h1Color: null              # Color for # titles (aliases: titleColor, h1FontColo
 h2Color: null              # Color for ## sections (aliases: sectionColor, h2FontColor)
 h3Color: null              # Color for ### headers (aliases: headerColor, h3FontColor)
 autoAdvance: 0             # Milliseconds per state tick (0 = disabled)
+fadeBullets: false         # Fade revealed-but-older progressive (*) bullets
+fadeColor: null            # Fade tone (any Spectre color); default 'dim' when unset
 ---
 ```
 
@@ -271,7 +273,7 @@ Any slide can override global frontmatter settings with HTML comments in the sli
 Slide content here.
 ```
 
-Supported keys: `pagination`, `paginationStyle`, `h1`, `h2`, `h3`, `h1Color`, `h2Color`, `h3Color`, `border`, `borderStyle`, `autoAdvance`.
+Supported keys: `pagination`, `paginationStyle`, `h1`, `h2`, `h3`, `h1Color`, `h2Color`, `h3Color`, `border`, `borderStyle`, `autoAdvance`, `fadeBullets`, `fadeColor`.
 
 Set `<!-- autoAdvance: 0 -->` on a slide to disable a global timer for that slide only.
 
@@ -304,6 +306,34 @@ Auto-advance disabled. Manual input required.
 ```
 
 See [Examples/Features/AutoAdvanceTest.md](Examples/Features/AutoAdvanceTest.md) for a working demo.
+
+#### Fading Bullets
+
+Ever notice how the whole bullet list sits there at full brightness while you're trying to talk about the third point? The audience is reading ahead (or rereading the first two) instead of listening to you. Rude.
+
+`fadeBullets` fixes that. Turn it on and every progressive (`*`) bullet you've already moved past drops to a dimmer tone, while the one you're actually on stays bright:
+
+```yaml
+---
+fadeBullets: true      # fade the bullets I already covered
+fadeColor: grey19      # optional; skip it to just use dim
+---
+```
+
+With no `fadeColor`, Deck uses Spectre's `dim` style, which keeps the bullet's color and just turns the lights down... a red bullet becomes a darker red. Want a specific shade instead? Set `fadeColor` to any Spectre color and it'll win over whatever inline colors the bullet already has (bold, italic, and links survive). Make a typo in the color name and Deck warns you, then falls back to `dim` instead of exploding mid-talk.
+
+Per-slide overrides work like everything else:
+
+```markdown
+### My Slide
+<!-- fadeBullets: true -->
+<!-- fadeColor: grey35 -->
+
+* first point
+* second point
+```
+
+Not sure which tone you like? Run [Examples/Features/FadeTest.md](Examples/Features/FadeTest.md) and look at them side by side.
 
 #### Intentionally Blank Slides
 

@@ -7,6 +7,8 @@ BeforeAll {
     . (Join-Path $modulePath 'Private/Get-PaginationText.ps1')
     . (Join-Path $modulePath 'Private/New-FigletText.ps1')
     . (Join-Path $modulePath 'Private/ConvertTo-SpectreMarkup.ps1')
+    . (Join-Path $modulePath 'Private/Resolve-FadeStyle.ps1')
+    . (Join-Path $modulePath 'Private/Format-ProgressiveBulletLine.ps1')
     . (Join-Path $modulePath 'Private/New-CodeBlockPanel.ps1')
     . (Join-Path $modulePath 'Private/New-TableRenderable.ps1')
     . (Join-Path $modulePath 'Private/ConvertTo-TableCell.ps1')
@@ -197,4 +199,62 @@ Body text under an H2 heading.
             { Show-ContentSlide -Slide $slide -Settings $settings } | Should -Not -Throw
         }
     }
+
+    Context 'When fadeBullets is enabled' {
+        # Fade markup correctness is covered in Format-ProgressiveBulletLine.Tests.ps1.
+        # These are smoke tests: rendering with fade on (plain and colored bullets) must not throw.
+
+        It 'Should render faded colored and plain bullets without errors' {
+            $slide = [PSCustomObject]@{
+                Number  = 1
+                Content = @'
+* <span style="color:red">red point</span>
+* <span style="color:blue">blue point</span>
+* plain point
+'@
+                IsBlank = $false
+            }
+            $settings = @{ foreground = 'white'; fadeBullets = $true; fadeColor = 'grey19' }
+
+            { Show-ContentSlide -Slide $slide -Settings $settings -VisibleBullets 2 } | Should -Not -Throw
+            $slide.TotalProgressiveBullets | Should -Be 3
+        }
+
+        It 'Should render with dim fade (no fadeColor) without errors' {
+            $slide = [PSCustomObject]@{
+                Number  = 1
+                Content = "* first`n* second"
+                IsBlank = $false
+            }
+            $settings = @{ foreground = 'white'; fadeBullets = $true }
+
+            { Show-ContentSlide -Slide $slide -Settings $settings -VisibleBullets 2 } | Should -Not -Throw
+        }
+        It 'Should fade bullets against a slide-global reveal index across segments' {
+            # Regression: a per-segment render counter restarted at zero, so with bullets
+            # split by a code block and VisibleBullets 2, BOTH bullets were faded and no
+            # current bullet stayed full strength.
+            $slide = [PSCustomObject]@{
+                Number  = 1
+                Content = @'
+* first
+
+```powershell
+Get-Process
+```
+
+* second
+'@
+                IsBlank = $false
+            }
+            $settings = @{ foreground = 'white'; fadeBullets = $true; fadeColor = 'grey19' }
+
+            Mock Format-ProgressiveBulletLine { $Line }
+            Show-ContentSlide -Slide $slide -Settings $settings -VisibleBullets 2
+
+            Should -Invoke Format-ProgressiveBulletLine -Times 1 -Exactly -ParameterFilter { $Line -like '* first' -and $Fade }
+            Should -Invoke Format-ProgressiveBulletLine -Times 1 -Exactly -ParameterFilter { $Line -like '* second' -and -not $Fade }
+        }
+    }
 }
+
